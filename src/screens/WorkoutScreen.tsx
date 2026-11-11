@@ -1,3 +1,4 @@
+import ConfirmButton from '../components/ConfirmButton'
 import { useEffect, useState } from 'react'
 import { exerciseMap, emptyLogged, useExercises, useStore } from '../store'
 import ExercisePicker from '../components/ExercisePicker'
@@ -47,7 +48,7 @@ export default function WorkoutScreen() {
                     <span>{e.sets.filter(s => s.done).map(s => `${s.weight}×${s.reps}`).join(', ') || '—'}</span></li>
                 ))}
               </ul>
-              <button className="btn ghost danger small" onClick={() => confirm('Удалить запись?') && deleteWorkout(w.id)}>Удалить</button>
+              <ConfirmButton className="btn ghost danger small" ask="Удалить запись?" onConfirm={() => deleteWorkout(w.id)}>Удалить</ConfirmButton>
             </details>
           ))}
         </div>
@@ -114,7 +115,7 @@ export default function WorkoutScreen() {
       })}
       <button className="btn wide" onClick={() => setPicking(true)}>+ Добавить упражнение</button>
       <div className="row">
-        <button className="btn ghost danger" onClick={() => confirm('Отменить тренировку без сохранения?') && cancelWorkout()}>Отменить</button>
+        <ConfirmButton ask="Не сохранять?" onConfirm={cancelWorkout}>Отменить</ConfirmButton>
         <button className="btn primary" onClick={finishWorkout}>Завершить и сохранить</button>
       </div>
       {picking && (

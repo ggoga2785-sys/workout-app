@@ -87,7 +87,7 @@ export default function NewProgram() {
             <label>Методика</label>
             <Choice<PowerliftingMethod>
               value={s.plMethod!}
-              options={entries(PL_METHOD_LABELS).filter(([k]) => k !== 'verkhoshansky' || s.plFocus === 'bench')}
+              options={entries(PL_METHOD_LABELS).filter(([k]) => k === 'generic' || k === 'sheiko' || (k === 'verkhoshansky' && s.plFocus === 'bench'))}
               onChange={v => up({ plMethod: v })} />
             {s.plMethod !== 'generic' && <p className="muted">Пока черновое приближение. Точные таблицы цикла будут добавлены по методике.</p>}
           </section>
@@ -112,7 +112,7 @@ export default function NewProgram() {
       </section>
       <section className="field">
         <label>Тренировок в неделю</label>
-        <Choice<ProgramSettings['daysPerWeek']> value={s.daysPerWeek} options={[[2, '2'], [3, '3'], [4, '4'], [5, '5']]} onChange={v => up({ daysPerWeek: v })} />
+        <Choice<number> value={s.daysPerWeek} options={[[2, '2'], [3, '3'], [4, '4'], [5, '5']]} onChange={v => up({ daysPerWeek: v })} />
       </section>
       {!(pl && s.plPhase === 'prep') && (
         <section className="field">

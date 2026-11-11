@@ -1,3 +1,4 @@
+import extra from './newExercises.json'
 import type { Equipment, Exercise, MainLift, Mechanics, MuscleGroup } from '../types'
 
 // Компактная запись: [id, название, основная группа, оборудование, механика, доп. группы?, свойства?]
@@ -144,6 +145,9 @@ const rows: Row[] = [
   ['jump-rope', 'Скакалка', 'fullbody', 'cardio', C, ['calves'], { timed: true }],
 ]
 
-export const BASE_EXERCISES: Exercise[] = rows.map(([id, name, primary, equipment, mechanics, secondary, props]) => ({
+const base: Exercise[] = rows.map(([id, name, primary, equipment, mechanics, secondary, props]) => ({
   id, name, primary, equipment, mechanics, secondary, ...props
 }))
+
+/** Базовые + добавленные вместе с каталогом программ */
+export const BASE_EXERCISES: Exercise[] = [...base, ...(extra as Exercise[])]

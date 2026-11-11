@@ -4,6 +4,8 @@ import Programs from './screens/Programs'
 import ProgramView from './screens/ProgramView'
 import NewProgram from './screens/NewProgram'
 import WorkoutScreen from './screens/WorkoutScreen'
+import Catalog from './screens/Catalog'
+import CatalogDetail from './screens/CatalogDetail'
 import Exercises from './screens/Exercises'
 import ProfileScreen from './screens/ProfileScreen'
 import { useStore } from './store'
@@ -26,6 +28,8 @@ export default function App() {
           <Route path="/programs" element={<Programs />} />
           <Route path="/programs/new" element={<NewProgram />} />
           <Route path="/programs/:id" element={<ProgramView />} />
+          <Route path="/catalog" element={<Catalog />} />
+          <Route path="/catalog/:id" element={<CatalogDetail />} />
           <Route path="/workout" element={<WorkoutScreen />} />
           <Route path="/exercises" element={<Exercises />} />
           <Route path="/profile" element={<ProfileScreen />} />

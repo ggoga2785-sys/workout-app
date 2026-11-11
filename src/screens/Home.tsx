@@ -26,8 +26,8 @@ export default function Home() {
       {!prog ? (
         <div className="card">
           <h2>Нет активной программы</h2>
-          <p className="muted">Выбери направление (бодибилдинг, фитнес или пауэрлифтинг), и приложение составит план на несколько недель.</p>
-          <Link className="btn primary" to="/programs/new">Составить программу</Link>
+          <p className="muted">Выбери готовую программу (Шейко, Верхошанский, Смолов, 5/3/1, сплит Арнольда и другие) или собери свою в конструкторе.</p>
+          <div className="row"><Link className="btn primary" to="/catalog">Готовые программы</Link><Link className="btn" to="/programs/new">Конструктор</Link></div>
         </div>
       ) : (
         <div className="card">

@@ -1,7 +1,7 @@
 import type { PlannedSet } from '../types'
 
 export function plannedLabel(s: PlannedSet) {
-  const parts = [`${s.reps} повт.`]
+  const parts = [s.amrap ? `${s.reps}+ повт. (макс.)` : `${s.reps} повт.`]
   if (s.percent) parts.push(`${Math.round(s.percent * 100)}%`)
   if (s.weight) parts.push(`${s.weight} кг`)
   if (s.rpe) parts.push(`RPE ${s.rpe}`)

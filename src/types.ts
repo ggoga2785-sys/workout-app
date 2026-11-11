@@ -33,13 +33,15 @@ export type BodybuildingGoal = 'mass' | 'recomp' | 'cut'
 export type PowerliftingFocus = 'total' | MainLift
 export type PowerliftingPhase = 'offseason' | 'prep'
 /** Методика: generic — базовый шаблон, остальные — авторские циклы */
-export type PowerliftingMethod = 'generic' | 'verkhoshansky' | 'sheiko'
+export type PowerliftingMethod =
+  | 'generic' | 'verkhoshansky' | 'sheiko' | 'rpe' | 'smolov' | 'russian'
+  | 'piklyaev' | 'texas' | '531' | 'conjugate'
 export type Level = 'beginner' | 'intermediate' | 'advanced'
 
 export interface ProgramSettings {
   discipline: Discipline
   level: Level
-  daysPerWeek: 2 | 3 | 4 | 5
+  daysPerWeek: number
   bodybuildingGoal?: BodybuildingGoal
   plFocus?: PowerliftingFocus
   plPhase?: PowerliftingPhase
@@ -59,6 +61,10 @@ export interface PlannedSet {
   weight?: number
   /** Целевой RPE, если работа по ощущениям */
   rpe?: number
+  /** Максимум повторов (reps — минимум) */
+  amrap?: boolean
+  /** От 1ПМ какого движения считать percent (по умолчанию — Exercise.lift) */
+  percentOf?: MainLift
 }
 
 export interface PlannedExercise {
@@ -91,6 +97,42 @@ export interface Program {
   /** Пометка, что шаблон черновой и будет заменён методикой */
   draft?: boolean
   description: string
+  /** Метаданные готовой программы из каталога */
+  meta?: ProgramMeta
+}
+
+export interface ProgramSource { title: string; url: string }
+export type Fidelity = 'source-exact' | 'source-converted' | 'reconstructed'
+
+export interface ProgramMeta {
+  catalogId: string
+  author: string
+  levelNote?: string
+  progression?: string
+  peaking?: string
+  howToUse?: string
+  variability?: string
+  fidelity: Fidelity
+  fidelityNote?: string
+  sources: ProgramSource[]
+  trainingMaxFactor?: number
+}
+
+/** Запись каталога готовых программ (src/data/programs.json) */
+export interface CatalogProgram extends Omit<ProgramMeta, 'catalogId'> {
+  id: string
+  name: string
+  discipline: Discipline
+  bodybuildingGoal?: BodybuildingGoal
+  plFocus?: PowerliftingFocus
+  plPhase?: PowerliftingPhase
+  plMethod?: PowerliftingMethod
+  level: Level
+  daysPerWeek: number
+  durationWeeks: number
+  percentBase: '1RM' | 'RPE'
+  description: string
+  weeks: ProgramWeek[]
 }
 
 // ===== Дневник =====

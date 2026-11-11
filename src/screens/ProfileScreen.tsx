@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useStore } from '../store'
 import { LIFT_LABELS } from '../data/labels'
 import type { MainLift } from '../types'
@@ -7,6 +7,7 @@ export default function ProfileScreen() {
   const s = useStore()
   const { profile, setProfile } = s
   const fileRef = useRef<HTMLInputElement>(null)
+  const [msg, setMsg] = useState('')
   const total = (['squat', 'bench', 'deadlift'] as MainLift[]).reduce((n, l) => n + (profile.oneRepMax[l] ?? 0), 0)
 
   const exportData = () => {
@@ -18,7 +19,7 @@ export default function ProfileScreen() {
     a.click()
   }
   const importData = async (f: File) => {
-    try { s.importData(await f.text()); alert('Данные загружены') } catch { alert('Не удалось прочитать файл') }
+    try { s.importData(await f.text()); setMsg('Данные загружены') } catch { setMsg('Не удалось прочитать файл: нужен .json, сохранённый этим приложением') }
   }
 
   return (
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
         <div className="row">
           <button className="btn" onClick={exportData}>Сохранить копию</button>
           <button className="btn" onClick={() => fileRef.current?.click()}>Загрузить копию</button>
+          {msg && <p className="muted small">{msg}</p>}
           <input ref={fileRef} type="file" accept="application/json" hidden onChange={e => e.target.files?.[0] && importData(e.target.files[0])} />
         </div>
       </div>
