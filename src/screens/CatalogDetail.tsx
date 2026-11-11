@@ -5,6 +5,8 @@ import { instantiate, requiredLifts, useCatalog } from '../lib/catalog'
 import { exerciseMap, useExercises, useStore } from '../store'
 import { FIDELITY_LABELS, LEVEL_LABELS, LIFT_LABELS } from '../data/labels'
 import { groupSets } from '../components/SetLine'
+import BenchAddon, { type BenchAddonState } from '../components/BenchAddon'
+import { addBenchCycle, benchChoices, upperDayIdx } from '../lib/benchAddon'
 
 export default function CatalogDetail() {
   const { id } = useParams()
@@ -14,15 +16,20 @@ export default function CatalogDetail() {
   const { profile, setProfile, addProgram } = useStore()
   const [orm, setOrm] = useState<Partial<Record<MainLift, number>>>(profile.oneRepMax)
   const [showWeek, setShowWeek] = useState(false)
+  const [bench, setBench] = useState<BenchAddonState>({ on: false, rm: profile.oneRepMax.bench })
   if (!cat) return <div className="screen"><p className="muted">Загружаю…</p></div>
   const cp = cat.programs.find(p => p.id === id)
   if (!cp) return <div className="screen"><p>Программа не найдена.</p></div>
 
   const lifts = requiredLifts(cp, exMap)
   const missing = lifts.filter(l => !orm[l])
+  const bb = cp.discipline === 'bodybuilding'
+  const nUpper = upperDayIdx(cp.weeks[0], exMap).length
+  const benchMissing = bb && bench.on && !bench.rm
   const start = () => {
-    setProfile({ oneRepMax: { ...profile.oneRepMax, ...orm } })
-    const p = instantiate(cp, orm, profile.rounding, exMap)
+    setProfile({ oneRepMax: { ...profile.oneRepMax, ...orm, ...(bench.on && bench.rm ? { bench: bench.rm } : {}) } })
+    let p = instantiate(cp, orm, profile.rounding, exMap)
+    if (bb && bench.on && bench.rm) p = addBenchCycle(p, cat, bench.choice ?? benchChoices(cat, nUpper, cp.level)[0].id, bench.rm, profile.rounding, exMap)
     addProgram(p)
     nav(`/programs/${p.id}`)
   }
@@ -78,8 +85,10 @@ export default function CatalogDetail() {
         </div>
       )}
 
-      <button className="btn primary wide" disabled={missing.length > 0} onClick={start}>
-        {missing.length ? 'Введи 1ПМ' : 'Начать эту программу'}
+      {bb && nUpper > 0 && <BenchAddon value={bench} onChange={setBench} upperDays={nUpper} level={cp.level} />}
+
+      <button className="btn primary wide" disabled={missing.length > 0 || benchMissing} onClick={start}>
+        {missing.length || benchMissing ? 'Введи 1ПМ' : 'Начать эту программу'}
       </button>
     </div>
   )

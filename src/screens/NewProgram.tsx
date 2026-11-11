@@ -7,6 +7,8 @@ import { requiredLifts, useCatalog } from '../lib/catalog'
 import { buildPlan, planOptions, type PlanOption } from '../lib/planner'
 import { exerciseMap, useExercises, useStore } from '../store'
 import { formatDate } from '../lib/util'
+import BenchAddon, { type BenchAddonState } from '../components/BenchAddon'
+import { addBenchCycle, benchChoices, upperDayIdx } from '../lib/benchAddon'
 import { DEFAULT_PRIORITY, FREQ_OPTIONS, LIFTS, PRESETS, activeLifts, dayName, focusFrom } from '../lib/priorities'
 import { PRIORITY_HINTS, PRIORITY_LABELS } from '../data/labels'
 import type { LiftPriorities, LiftPriority } from '../types'
@@ -70,6 +72,7 @@ export default function NewProgram() {
   const [orm, setOrm] = useState<Partial<Record<MainLift, number>>>(profile.oneRepMax)
   const [picked, setPicked] = useState<string>()
   const [showAll, setShowAll] = useState(false)
+  const [bench, setBench] = useState<BenchAddonState>({ on: false, rm: profile.oneRepMax.bench })
   const up = (p: Partial<ProgramSettings>) => { setS(prev => ({ ...prev, ...p })); setPicked(undefined) }
   const pl = s.discipline === 'powerlifting'
   const prio: LiftPriorities = s.plPriority ?? DEFAULT_PRIORITY
@@ -96,10 +99,17 @@ export default function NewProgram() {
     return LIFTS.filter(l => set.has(l) && active.includes(l))
   }, [pl, prio, chosen, exMap])
   const missing = needLifts.filter(l => !orm[l])
+  const bb = s.discipline === 'bodybuilding'
+  const nUpper = useMemo(() => (bb ? upperDayIdx(generateProgram({ ...s, weeks: 1 }, {}).weeks[0], exMap).length : 0), [bb, s, exMap])
+  const benchMissing = bb && bench.on && !bench.rm
 
   const create = () => {
     setProfile({ oneRepMax: { ...profile.oneRepMax, ...orm } })
-    const p = pl && chosen ? buildPlan(chosen, s, orm, profile.rounding, exMap) : generateProgram(s, orm, profile.rounding)
+    let p = pl && chosen ? buildPlan(chosen, s, orm, profile.rounding, exMap) : generateProgram(s, orm, profile.rounding)
+    if (bb && bench.on && bench.rm && catalog) {
+      p = addBenchCycle(p, catalog, bench.choice ?? benchChoices(catalog, nUpper, s.level)[0].id, bench.rm, profile.rounding, exMap)
+      setProfile({ oneRepMax: { ...profile.oneRepMax, ...orm, bench: bench.rm } })
+    }
     addProgram(p)
     if (from?.replaceId) removeProgram(from.replaceId)
     nav(`/programs/${p.id}`)
@@ -233,8 +243,10 @@ export default function NewProgram() {
         </section>
       )}
 
-      <button className="btn primary wide" disabled={missing.length > 0 || prepNoDate || tooSoon || noLifts} onClick={create}>
-        {noLifts ? 'Выбери хотя бы одно движение' : prepNoDate ? 'Укажи дату соревнований' : missing.length ? `Введи 1ПМ: ${missing.map(l => LIFT_LABELS[l].toLowerCase()).join(', ')}` : 'Составить программу'}
+      {bb && nUpper > 0 && <BenchAddon value={bench} onChange={setBench} upperDays={nUpper} level={s.level} />}
+
+      <button className="btn primary wide" disabled={missing.length > 0 || prepNoDate || tooSoon || noLifts || benchMissing} onClick={create}>
+        {benchMissing ? 'Введи 1ПМ в жиме' : noLifts ? 'Выбери хотя бы одно движение' : prepNoDate ? 'Укажи дату соревнований' : missing.length ? `Введи 1ПМ: ${missing.map(l => LIFT_LABELS[l].toLowerCase()).join(', ')}` : 'Составить программу'}
       </button>
     </div>
   )
