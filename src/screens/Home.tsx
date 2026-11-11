@@ -33,6 +33,9 @@ export default function Home() {
         <div className="card">
           <div className="li-sub">{prog.name}</div>
           <h2>Неделя {cursor.week + 1} из {prog.weeks.length} · {prog.weeks[cursor.week]?.block}</h2>
+          {prog.phases?.map(ph => cursor.week >= ph.startWeek && cursor.week <= ph.endWeek && (
+            <p key={ph.title} className="muted">Фаза: <b>{ph.title}</b> — {ph.program}</p>
+          ))}
           {comp && <p className="muted">До соревнований: {Math.max(0, weeksUntil(comp))} нед. ({formatDate(comp)})</p>}
           {day && (
             <>

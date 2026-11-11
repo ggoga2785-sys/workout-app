@@ -69,7 +69,10 @@ function buildHypertrophyWeek(s: ProgramSettings, weekIdx: number, totalWeeks: n
   const rpe = deload ? 6 : isFitness ? 7 : 7 + (weekIdx % 4)
   const template = isFitness
     ? FITNESS_DAYS.slice(0, Math.min(3, s.daysPerWeek))
-    : SPLITS[s.daysPerWeek]
+    : s.split === 'upperlower' && s.daysPerWeek === 3
+      // Верх/низ на 3 дня: 4 тренировки по кругу (ВА, НА, ВБ | НБ, ВА, НА | …)
+      ? [0, 1, 2].map(d => SPLITS[4][(weekIdx * 3 + d) % 4])
+      : SPLITS[Math.min(5, Math.max(2, s.daysPerWeek))]
 
   const days: ProgramDay[] = template.map(d => ({
     title: d.title,
@@ -142,18 +145,21 @@ function buildPowerliftingWeek(s: ProgramSettings, weekIdx: number, total: numbe
   // Порядок дней: для троеборья чередуем движения, для одного движения — оно в каждой тренировке
   for (let d = 0; d < n; d++) {
     const exercises: PlannedExercise[] = []
-    const heavy = d === 0 || (n >= 4 && d === 2)
+    // Волнообразная недельная нагрузка (DUP): тяжёлый / лёгкий / средний
+    const kind = (['heavy', 'light', 'medium', 'heavy', 'light'] as const)[d]
+    const heavy = kind === 'heavy'
+    const shift = kind === 'heavy' ? 0 : kind === 'medium' ? -0.05 : -0.12
+    const repsAdd = kind === 'light' ? 1 : 0
     let main: MainLift
     if (focus === 'total') {
       const order: MainLift[][] = [['squat', 'bench'], ['deadlift', 'bench'], ['squat', 'bench'], ['deadlift', 'bench'], ['bench', 'squat']]
       const [a, b] = order[d % order.length]
       main = a
-      exercises.push(ex(a === 'deadlift' && s.plMethod !== 'sheiko' ? 'deadlift' : a, mk(a, heavy ? p.topPct : p.topPct - 0.05, p.topReps, p.topSets, orm, step), 240))
+      exercises.push(ex(a === 'deadlift' && s.plMethod !== 'sheiko' ? 'deadlift' : a, mk(a, p.topPct + shift, p.topReps + repsAdd, p.topSets, orm, step), 240))
       if (p.volSets) exercises.push(ex(b, liftSets(b, p.volPct, p.volReps, p.volSets, orm, step), 180))
     } else {
       main = focus
-      const pct = heavy ? p.topPct : p.topPct - 0.07
-      exercises.push(ex(focus, mk(focus, pct, p.topReps, p.topSets, orm, step), 240))
+      exercises.push(ex(focus, mk(focus, p.topPct + shift, p.topReps + repsAdd, p.topSets, orm, step), 240))
       if (p.volSets) {
         const variant = ASSIST[focus][0]
         exercises.push(ex(variant, liftSets(focus, p.volPct - 0.05, p.volReps, p.volSets, orm, step), 180, 'вариация, % от 1ПМ основного движения'))
@@ -163,7 +169,7 @@ function buildPowerliftingWeek(s: ProgramSettings, weekIdx: number, total: numbe
     if (p.volSets) {
       ASSIST[main].slice(1, 4).forEach(id => exercises.push(ex(id, sets(3, { reps: 10, rpe: 7 }), 90)))
     }
-    days.push({ title: `День ${d + 1}${heavy ? ' · тяжёлый' : ''}`, exercises })
+    days.push({ title: `День ${d + 1} · ${heavy ? 'тяжёлый' : kind === 'medium' ? 'средний' : 'лёгкий'}`, exercises })
   }
   if (prep && total - weekIdx === 1) {
     days.splice(Math.min(2, days.length))

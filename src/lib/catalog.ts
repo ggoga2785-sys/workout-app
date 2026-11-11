@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CatalogProgram, Exercise, MainLift, Program } from '../types'
 import { roundTo, uid } from './util'
+import { EXTRA_PROGRAMS } from '../data/extraPrograms'
 
 export interface Catalog {
   fidelityLegend: Record<string, string>
@@ -13,7 +14,10 @@ let cache: Catalog | undefined
 /** Каталог тяжёлый (~600 КБ), поэтому грузится отдельным чанком при первом открытии */
 export function loadCatalog(): Promise<Catalog> {
   if (cache) return Promise.resolve(cache)
-  return import('../data/programs.json').then(m => (cache = m.default as unknown as Catalog))
+  return import('../data/programs.json').then(m => {
+    const c = m.default as unknown as Catalog
+    return (cache = { ...c, programs: [...c.programs, ...EXTRA_PROGRAMS] })
+  })
 }
 
 export function useCatalog() {

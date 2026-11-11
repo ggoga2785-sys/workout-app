@@ -29,7 +29,7 @@ export const PL_PHASE_LABELS: Record<PowerliftingPhase, string> = {
 }
 
 export const PL_METHOD_LABELS: Record<PowerliftingMethod, string> = {
-  generic: 'Базовая периодизация', verkhoshansky: 'Цикл Верхошанского', sheiko: 'Шейко',
+  generic: 'Тяжёлый/средний/лёгкий день', verkhoshansky: 'Цикл Верхошанского', sheiko: 'Шейко',
   rpe: 'По RPE', smolov: 'Смолов', russian: 'Русский цикл', piklyaev: 'Пикляев',
   texas: 'Texas Method', '531': '5/3/1', conjugate: 'Сопряжённый метод'
 }

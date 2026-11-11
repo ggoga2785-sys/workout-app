@@ -50,6 +50,8 @@ export interface ProgramSettings {
   competitionDate?: string
   /** Длительность в неделях, если нет даты соревнований */
   weeks: number
+  /** Схема сплита для 3 дней в бодибилдинге */
+  split?: 'fullbody' | 'upperlower'
 }
 
 // ===== Сгенерированная программа =====
@@ -99,6 +101,18 @@ export interface Program {
   description: string
   /** Метаданные готовой программы из каталога */
   meta?: ProgramMeta
+  /** Фазы плана (база → подготовка → старт), если программа собрана подбором */
+  phases?: ProgramPhase[]
+}
+
+export interface ProgramPhase {
+  title: string
+  /** Неделя начала и конца, с 0, включительно */
+  startWeek: number
+  endWeek: number
+  /** Что выполняется в этой фазе: название программы или методики */
+  program: string
+  catalogId?: string
 }
 
 export interface ProgramSource { title: string; url: string }

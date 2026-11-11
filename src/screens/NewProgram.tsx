@@ -1,9 +1,39 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import type { BodybuildingGoal, Discipline, Level, MainLift, PowerliftingFocus, PowerliftingMethod, PowerliftingPhase, ProgramSettings } from '../types'
-import { BB_GOAL_LABELS, DISCIPLINE_LABELS, LEVEL_LABELS, LIFT_LABELS, PL_FOCUS_LABELS, PL_METHOD_LABELS, PL_PHASE_LABELS } from '../data/labels'
+import { useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import type { BodybuildingGoal, Discipline, Level, MainLift, PowerliftingFocus, PowerliftingPhase, ProgramSettings } from '../types'
+import { BB_GOAL_LABELS, DISCIPLINE_LABELS, LEVEL_LABELS, LIFT_LABELS, PL_FOCUS_LABELS, PL_PHASE_LABELS } from '../data/labels'
 import { generateProgram, programWeeks } from '../lib/generator'
-import { useStore } from '../store'
+import { requiredLifts, useCatalog } from '../lib/catalog'
+import { buildPlan, planOptions, type PlanOption } from '../lib/planner'
+import { exerciseMap, useExercises, useStore } from '../store'
+import { formatDate } from '../lib/util'
+
+/** Полоса фаз плана: ширина пропорциональна числу недель */
+function PhaseBar({ opt }: { opt: PlanOption }) {
+  return (
+    <div className="phasebar">
+      {opt.phases.map((ph, i) => (
+        <div key={i} className={'phase p' + i} style={{ flex: ph.weeks }}>
+          <b>{ph.title}</b><span>{ph.weeks} нед.</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function OptionCard({ opt, on, onPick }: { opt: PlanOption; on: boolean; onPick: () => void }) {
+  return (
+    <button className={'pick' + (on ? ' on' : '')} onClick={onPick}>
+      <b>{opt.name}{opt.recommended && <span className="badge">рекомендую</span>}</b>
+      <PhaseBar opt={opt} />
+      {opt.phases.length > 1 && (
+        <span>{opt.phases.map(ph => `${ph.title}: ${ph.src.kind === 'catalog' ? ph.src.program.name : 'своя периодизация'}${ph.note ? ` (${ph.note})` : ''}`).join(' → ')}</span>
+      )}
+      {opt.pros.map((x, i) => <span key={'p' + i} className="pro">+ {x}</span>)}
+      {opt.cons.map((x, i) => <span key={'c' + i} className="con">− {x}</span>)}
+    </button>
+  )
+}
 
 function Choice<T extends string | number>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
@@ -25,28 +55,44 @@ const DISCIPLINE_HINT: Record<Discipline, string> = {
 
 export default function NewProgram() {
   const nav = useNavigate()
-  const { profile, setProfile, addProgram } = useStore()
-  const [s, setS] = useState<ProgramSettings>({
+  const loc = useLocation()
+  const from = loc.state as { settings?: ProgramSettings; replaceId?: string } | null
+  const { profile, setProfile, addProgram, removeProgram } = useStore()
+  const exMap = exerciseMap(useExercises())
+  const catalog = useCatalog()
+  const [s, setS] = useState<ProgramSettings>(from?.settings ?? {
     discipline: 'powerlifting', level: 'intermediate', daysPerWeek: 3, weeks: 8,
     bodybuildingGoal: 'mass', plFocus: 'total', plPhase: 'offseason', plMethod: 'generic',
   })
   const [orm, setOrm] = useState<Partial<Record<MainLift, number>>>(profile.oneRepMax)
-  const up = (p: Partial<ProgramSettings>) => setS(prev => ({ ...prev, ...p }))
+  const [picked, setPicked] = useState<string>()
+  const [showAll, setShowAll] = useState(false)
+  const up = (p: Partial<ProgramSettings>) => { setS(prev => ({ ...prev, ...p })); setPicked(undefined) }
   const pl = s.discipline === 'powerlifting'
-  const needLifts: MainLift[] = pl ? (s.plFocus === 'total' || !s.plFocus ? ['squat', 'bench', 'deadlift'] : [s.plFocus]) : []
-  const missing = needLifts.filter(l => !orm[l])
   const prepNoDate = pl && s.plPhase === 'prep' && !s.competitionDate
+  const tooSoon = pl && s.plPhase === 'prep' && !!s.competitionDate && programWeeks(s) < 2
+
+  const options = useMemo(() => (pl && catalog && !prepNoDate ? planOptions(catalog, s) : []), [pl, catalog, s, prepNoDate])
+  const chosen = options.find(o => o.key === picked) ?? options[0]
+  const needLifts: MainLift[] = useMemo(() => {
+    if (!pl) return []
+    const set = new Set<MainLift>(s.plFocus === 'total' || !s.plFocus ? ['squat', 'bench', 'deadlift'] : [s.plFocus])
+    chosen?.phases.forEach(ph => ph.src.kind === 'catalog' && requiredLifts(ph.src.program, exMap).forEach(l => set.add(l)))
+    return (['squat', 'bench', 'deadlift'] as MainLift[]).filter(l => set.has(l))
+  }, [pl, s.plFocus, chosen, exMap])
+  const missing = needLifts.filter(l => !orm[l])
 
   const create = () => {
     setProfile({ oneRepMax: { ...profile.oneRepMax, ...orm } })
-    const p = generateProgram(s, orm, profile.rounding)
+    const p = pl && chosen ? buildPlan(chosen, s, orm, profile.rounding, exMap) : generateProgram(s, orm, profile.rounding)
     addProgram(p)
+    if (from?.replaceId) removeProgram(from.replaceId)
     nav(`/programs/${p.id}`)
   }
 
   return (
     <div className="screen">
-      <h1>Новая программа</h1>
+      <h1>{from?.replaceId ? 'Подобрать заново' : 'Новая программа'}</h1>
 
       <section className="field">
         <label>Направление</label>
@@ -65,6 +111,13 @@ export default function NewProgram() {
           <Choice<BodybuildingGoal> value={s.bodybuildingGoal!} options={entries(BB_GOAL_LABELS)} onChange={v => up({ bodybuildingGoal: v })} />
         </section>
       )}
+      {s.discipline === 'bodybuilding' && s.daysPerWeek === 3 && (
+        <section className="field">
+          <label>Схема на 3 дня</label>
+          <Choice<'fullbody' | 'upperlower'> value={s.split ?? 'fullbody'} options={[['fullbody', 'Всё тело'], ['upperlower', 'Верх / низ']]} onChange={v => up({ split: v })} />
+          {s.split === 'upperlower' && <p className="muted">Четыре тренировки (Верх А, Низ А, Верх Б, Низ Б) идут по кругу.</p>}
+        </section>
+      )}
 
       {pl && (
         <>
@@ -80,17 +133,11 @@ export default function NewProgram() {
             <section className="field">
               <label>Дата соревнований</label>
               <input className="input" type="date" value={s.competitionDate ?? ''} onChange={e => up({ competitionDate: e.target.value || undefined })} />
-              {s.competitionDate && <p className="muted">Программа на {programWeeks(s)} нед. с подводкой к этой дате.</p>}
+              {s.competitionDate && (tooSoon
+                ? <p className="muted">До старта меньше 2 недель: подготовку уже не построить, лучше выбрать межсезонье.</p>
+                : <p className="muted">До старта {programWeeks(s)} нед. ({formatDate(s.competitionDate)}). План закончится неделей соревнований.</p>)}
             </section>
           )}
-          <section className="field">
-            <label>Методика</label>
-            <Choice<PowerliftingMethod>
-              value={s.plMethod!}
-              options={entries(PL_METHOD_LABELS).filter(([k]) => k === 'generic' || k === 'sheiko' || (k === 'verkhoshansky' && s.plFocus === 'bench'))}
-              onChange={v => up({ plMethod: v })} />
-            {s.plMethod !== 'generic' && <p className="muted">Пока черновое приближение. Точные таблицы цикла будут добавлены по методике.</p>}
-          </section>
           <section className="field">
             <label>Разовый максимум (1ПМ), кг</label>
             <div className="row">
@@ -121,8 +168,24 @@ export default function NewProgram() {
         </section>
       )}
 
-      <button className="btn primary wide" disabled={missing.length > 0 || prepNoDate} onClick={create}>
-        {missing.length ? 'Введи 1ПМ' : prepNoDate ? 'Укажи дату соревнований' : 'Составить программу'}
+      {pl && !prepNoDate && !tooSoon && (
+        <section className="field">
+          <label>Подобранный план</label>
+          {!catalog && <p className="muted">Подбираю…</p>}
+          {chosen && <OptionCard opt={chosen} on onPick={() => {}} />}
+          {options.length > 1 && (
+            <button className="btn ghost" onClick={() => setShowAll(!showAll)}>
+              {showAll ? 'Скрыть другие варианты' : `Выбрать другую программу (${options.length - 1})`}
+            </button>
+          )}
+          {showAll && options.filter(o => o !== chosen).map(o => (
+            <OptionCard key={o.key} opt={o} on={false} onPick={() => { setPicked(o.key); setShowAll(false) }} />
+          ))}
+        </section>
+      )}
+
+      <button className="btn primary wide" disabled={missing.length > 0 || prepNoDate || tooSoon} onClick={create}>
+        {prepNoDate ? 'Укажи дату соревнований' : missing.length ? `Введи 1ПМ: ${missing.map(l => LIFT_LABELS[l].toLowerCase()).join(', ')}` : 'Составить программу'}
       </button>
     </div>
   )

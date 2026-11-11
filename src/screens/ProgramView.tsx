@@ -25,6 +25,29 @@ export default function ProgramView() {
     <div className="screen">
       <h1>{p.name}</h1>
       <p className="muted">{p.description}</p>
+      {p.phases && p.phases.length > 0 && (
+        <div className="card">
+          <h3>Фазы плана</h3>
+          <div className="phasebar">
+            {p.phases.map((ph, i) => {
+              const now = p.id === activeProgramId && cursor.week >= ph.startWeek && cursor.week <= ph.endWeek
+              return (
+                <div key={i} className={'phase p' + i + (now ? ' now' : '')} style={{ flex: ph.endWeek - ph.startWeek + 1 }}>
+                  <b>{ph.title}</b><span>нед. {ph.startWeek + 1}–{ph.endWeek + 1}</span>
+                </div>
+              )
+            })}
+          </div>
+          <ul className="plan">
+            {p.phases.map((ph, i) => <li key={i}><b>{ph.title}</b><span>{ph.program}</span></li>)}
+          </ul>
+        </div>
+      )}
+      {p.settings.discipline === 'powerlifting' && (
+        <button className="btn" onClick={() => nav('/programs/new', { state: { settings: { ...p.settings, weeks: p.settings.weeks || 8 }, replaceId: p.id } })}>
+          Заменить программу
+        </button>
+      )}
       {p.meta && <p className="muted small">{p.meta.author}{p.meta.howToUse ? ` · ${p.meta.howToUse}` : ''}</p>}
       {p.meta?.progression && <p className="muted small">Прогрессия: {p.meta.progression}</p>}
       {p.draft && <p className="note">Черновой шаблон: структура и проценты временные, методики будут добавлены позже.</p>}
