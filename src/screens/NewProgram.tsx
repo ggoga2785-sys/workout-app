@@ -7,7 +7,7 @@ import { requiredLifts, useCatalog } from '../lib/catalog'
 import { buildPlan, planOptions, type PlanOption } from '../lib/planner'
 import { exerciseMap, useExercises, useStore } from '../store'
 import { formatDate } from '../lib/util'
-import { DEFAULT_PRIORITY, FREQ_OPTIONS, LIFTS, PRESETS, activeLifts, focusFrom } from '../lib/priorities'
+import { DEFAULT_PRIORITY, FREQ_OPTIONS, LIFTS, PRESETS, activeLifts, dayName, focusFrom } from '../lib/priorities'
 import { PRIORITY_HINTS, PRIORITY_LABELS } from '../data/labels'
 import type { LiftPriorities, LiftPriority } from '../types'
 
@@ -75,6 +75,12 @@ export default function NewProgram() {
   const prio: LiftPriorities = s.plPriority ?? DEFAULT_PRIORITY
   const setPrio = (p: LiftPriorities) => up({ plPriority: p, plFocus: focusFrom(p) })
   const freq = s.plFrequency ?? {}
+  const pins = s.plDays ?? {}
+  const togglePin = (l: MainLift, i: number) => {
+    const cur = pins[l] ?? []
+    const next = cur.includes(i) ? cur.filter(x => x !== i) : [...cur, i].sort()
+    up({ plPriority: prio, plFocus: focusFrom(prio), plDays: { ...pins, [l]: next.length ? next : undefined } })
+  }
   const setFreq = (l: MainLift, v: number) => up({ plPriority: prio, plFocus: focusFrom(prio), plFrequency: { ...freq, [l]: v || undefined } })
   const noLifts = pl && activeLifts(prio).length === 0
   const prepNoDate = pl && s.plPhase === 'prep' && !s.competitionDate
@@ -134,7 +140,7 @@ export default function NewProgram() {
             <label>Что тренируем</label>
             <div className="chips">
               {PRESETS.map(pr => (
-                <button key={pr.label} className={'chip' + (LIFTS.every(l => pr.p[l] === prio[l]) ? ' on' : '')} onClick={() => up({ plPriority: pr.p, plFocus: focusFrom(pr.p), plFrequency: pr.f })}>{pr.label}</button>
+                <button key={pr.label} className={'chip' + (LIFTS.every(l => pr.p[l] === prio[l]) ? ' on' : '')} onClick={() => up({ plPriority: pr.p, plFocus: focusFrom(pr.p), plFrequency: pr.f, plDays: s.daysPerWeek === 3 ? pr.days : undefined })}>{pr.label}</button>
               ))}
             </div>
             <div className="prio">
@@ -147,6 +153,15 @@ export default function NewProgram() {
                     ))}
                   </div>
                   {prio[l] !== 'off' && (
+                    <div className="freq">
+                      <span>Дни:</span>
+                      {Array.from({ length: s.daysPerWeek }, (_, i) => (
+                        <button key={i} className={'chip small' + (pins[l]?.includes(i) ? ' on' : '')} onClick={() => togglePin(l, i)}>{dayName(i, s.daysPerWeek)}</button>
+                      ))}
+                      {!pins[l]?.length && <span>любые</span>}
+                    </div>
+                  )}
+                  {prio[l] !== 'off' && !pins[l]?.length && (
                     <div className="freq">
                       <span>Раз в неделю:</span>
                       {FREQ_OPTIONS.map(([v, t]) => (
@@ -193,7 +208,7 @@ export default function NewProgram() {
       </section>
       <section className="field">
         <label>Тренировок в неделю</label>
-        <Choice<number> value={s.daysPerWeek} options={[[2, '2'], [3, '3'], [4, '4'], [5, '5']]} onChange={v => up({ daysPerWeek: v })} />
+        <Choice<number> value={s.daysPerWeek} options={[[2, '2'], [3, '3'], [4, '4'], [5, '5']]} onChange={v => up({ daysPerWeek: v, plDays: undefined })} />
       </section>
       {!(pl && s.plPhase === 'prep') && (
         <section className="field">

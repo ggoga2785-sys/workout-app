@@ -51,6 +51,8 @@ export interface ProgramSettings {
   plPriority?: LiftPriorities
   /** Сколько раз в неделю делать движение (0.5 = раз в 2 недели); нет значения — как в программе */
   plFrequency?: Partial<Record<MainLift, number>>
+  /** Закрепление движения за тренировочными днями недели (индексы с 0) */
+  plDays?: Partial<Record<MainLift, number[]>>
   plPhase?: PowerliftingPhase
   plMethod?: PowerliftingMethod
   /** Дата соревнований (ISO yyyy-mm-dd) — для подготовки с подводкой */

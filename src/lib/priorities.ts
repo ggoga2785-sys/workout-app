@@ -15,9 +15,9 @@ export const LIFTS: MainLift[] = ['squat', 'bench', 'deadlift']
 
 export const DEFAULT_PRIORITY: LiftPriorities = { squat: 'main', bench: 'main', deadlift: 'main' }
 
-export const PRESETS: { label: string; p: LiftPriorities; f?: Partial<Record<MainLift, number>> }[] = [
+export const PRESETS: { label: string; p: LiftPriorities; f?: Partial<Record<MainLift, number>>; days?: Partial<Record<MainLift, number[]>> }[] = [
   { label: 'Троеборье', p: { squat: 'main', bench: 'main', deadlift: 'main' } },
-  { label: 'Жим + присед, тяга изредка', p: { squat: 'high', bench: 'main', deadlift: 'low' }, f: { bench: 2, squat: 2, deadlift: 0.5 } },
+  { label: 'Жим + присед, тяга изредка', p: { squat: 'high', bench: 'main', deadlift: 'low' }, f: { bench: 2, squat: 2, deadlift: 0.5 }, days: { bench: [0, 2], squat: [0, 1], deadlift: [1] } },
   { label: 'Только жим', p: { squat: 'off', bench: 'main', deadlift: 'off' } },
   { label: 'Присед', p: { squat: 'main', bench: 'high', deadlift: 'low' } },
   { label: 'Тяга', p: { squat: 'high', bench: 'high', deadlift: 'main' } },
@@ -42,6 +42,14 @@ export function describePriorities(pr: LiftPriorities): string[] {
     else if (pr[l] === 'high' && focus !== 'total' && focus !== l) out.push(`${name} добавлен 2 раза в неделю`)
   }
   return out
+}
+
+/** Не больше 12 подходов одного упражнения за тренировку: при слиянии оставляем самые тяжёлые, по возрастанию */
+const MAX_SETS = 12
+function capSets(list: PlannedSet[]): PlannedSet[] {
+  if (list.length <= MAX_SETS) return list
+  const key = (x: PlannedSet) => x.percent ?? x.rpe ?? 0
+  return [...list].sort((a, b) => key(b) - key(a)).slice(0, MAX_SETS).sort((a, b) => key(a) - key(b))
 }
 
 const sets = (n: number, s: PlannedSet) => Array.from({ length: n }, () => ({ ...s }))
@@ -166,7 +174,7 @@ export function applyFrequency(
           const target = keepSet.reduce((best, j) => (Math.abs(j - i) < Math.abs(best - i) ? j : best))
           for (const m of moved) {
             const same = days[target].exercises.find(e => e.exerciseId === m.exerciseId)
-            if (same) same.sets.push(...m.sets)
+            if (same) same.sets = capSets([...same.sets, ...m.sets])
             else {
               const lastIdx = days[target].exercises.map(e => liftOf(e) === l).lastIndexOf(true)
               days[target].exercises.splice(lastIdx + 1, 0, { ...m, note: m.note ? `${m.note}; перенесено` : 'перенесено с другого дня' })
@@ -185,6 +193,96 @@ export function applyFrequency(
           { exerciseId: l, sets: sets(3, { reps: 5, percent: pct, weight: w }), restSec: 180, note: 'лёгкий день' })
       }
     }
+    return { ...week, days: days.filter((d, i) => d.exercises.length > 0 || week.days[i].exercises.length === 0) }
+  })
+}
+
+const DAY_NAMES_3 = ['пн', 'ср', 'пт']
+export const dayName = (i: number, n: number) => (n === 3 ? DAY_NAMES_3[i] : `д${i + 1}`)
+
+export function describeDays(d: Partial<Record<MainLift, number[]>> | undefined, n: number): string[] {
+  if (!d) return []
+  return LIFTS.filter(l => d[l]?.length).map(l => `${LIFT_LABELS[l].toLowerCase()}: ${d[l]!.map(i => dayName(i, n)).join(', ')}`)
+}
+
+/** Подсобка, которая «принадлежит» движению: уходит вместе с ним из незакреплённых дней */
+const ASSIST_PRIMARY: Record<MainLift, string[]> = { bench: ['chest', 'triceps'], squat: ['quads'], deadlift: [] }
+
+/**
+ * Закрепление движений за днями. Из остальных дней движение (и его подсобка) переносится
+ * в ближайший закреплённый день. В дне, где есть другое главное движение, это движение — лёгкое
+ * (3×5 на ~65–70%), а основной объём уходит в закреплённый день без других главных движений.
+ * Главные движения ставятся в начало тренировки.
+ */
+export function applyDayPins(
+  weeks: ProgramWeek[], pins: Partial<Record<MainLift, number[]>>, pr: LiftPriorities,
+  orm: Partial<Record<MainLift, number>>, rounding: number, exMap: Map<string, Exercise>, compWeekLast: boolean,
+): ProgramWeek[] {
+  const liftOf = (e: PlannedExercise) => exMap.get(e.exerciseId)?.lift
+  const rank = (e: PlannedExercise) => {
+    const l = liftOf(e)
+    if (!l) return 9
+    return { main: 0, high: 1, low: 2, off: 3 }[pr[l]] + (exMap.get(e.exerciseId)?.competition ? 0 : 0.5)
+  }
+  return weeks.map((week, wi) => {
+    if (compWeekLast && wi === weeks.length - 1) return week
+    const days = week.days.map(d => ({ ...d, exercises: d.exercises.map(e => ({ ...e, sets: [...e.sets] })) }))
+    const n = days.length
+    for (const l of LIFTS) {
+      const p = pins[l]
+      if (!p?.length || pr[l] === 'off' || p.some(i => i >= n)) continue
+      // Пины только переставляют: если на этой неделе движения нет (например, тяга раз в 2 недели) — не добавляем
+      if (!days.some(d => d.exercises.some(e => liftOf(e) === l))) continue
+      const belongs = (e: PlannedExercise) => liftOf(e) === l ||
+        (!liftOf(e) && ASSIST_PRIMARY[l].includes(exMap.get(e.exerciseId)?.primary ?? ''))
+      const nearest = (i: number) => p.reduce((b, j) => (Math.abs(j - i) < Math.abs(b - i) ? j : b))
+      const otherMain = (i: number) => days[i].exercises.some(e => { const x = liftOf(e); return x && x !== l && pr[x] === 'main' })
+      // В каких закреплённых днях движение тяжёлое: где нет другого главного (если таких нет — во всех)
+      const heavyDays = p.filter(i => !otherMain(i))
+      const heavy = heavyDays.length ? heavyDays : p
+      // 1) убираем из незакреплённых дней
+      for (let i = 0; i < n; i++) {
+        if (p.includes(i)) continue
+        const moved = days[i].exercises.filter(belongs)
+        if (!moved.length) continue
+        days[i].exercises = days[i].exercises.filter(e => !belongs(e))
+        const t = heavy.includes(nearest(i)) ? nearest(i) : heavy[0]
+        for (const m of moved) {
+          const same = days[t].exercises.find(e => e.exerciseId === m.exerciseId)
+          if (same) same.sets = capSets([...same.sets, ...m.sets])
+          else days[t].exercises.push({ ...m })
+        }
+      }
+      // 2) в «лёгких» днях оставляем только лёгкий вариант, объём — в тяжёлый день
+      let top = 0
+      for (const d of days) for (const e of d.exercises) if (liftOf(e) === l) for (const s of e.sets) top = Math.max(top, s.percent ?? 0)
+      const lightPct = Math.max(0.6, Math.min(0.7, (top || 0.8) - 0.15))
+      const lightSets = () => sets(3, { reps: 5, percent: lightPct, weight: orm[l] ? roundTo(orm[l]! * lightPct, rounding) : undefined })
+      for (const i of p) {
+        if (heavy.includes(i)) continue
+        const mine = days[i].exercises.filter(e => liftOf(e) === l)
+        if (mine.length) {
+          days[i].exercises = days[i].exercises.filter(e => liftOf(e) !== l)
+          const t = heavy[0]
+          for (const m of mine) {
+            const same = days[t].exercises.find(e => e.exerciseId === m.exerciseId)
+            if (same) same.sets = capSets([...same.sets, ...m.sets])
+            else days[t].exercises.push({ ...m })
+          }
+        }
+        const pos = days[i].exercises.map(x => !!liftOf(x)).lastIndexOf(true) + 1
+        days[i].exercises.splice(pos, 0, { exerciseId: l, sets: lightSets(), restSec: 180, note: 'лёгкий' })
+      }
+      // 3) в тяжёлых закреплённых днях без движения — добавляем рабочие подходы
+      const anyHeavy = heavy.some(i => days[i].exercises.some(e => liftOf(e) === l && e.note !== 'лёгкий'))
+      if (!anyHeavy && heavy.some(i => !p.includes(i) || !otherMain(i))) {
+        const pct = Math.max(0.7, Math.min(0.85, (top || 0.8) - 0.05))
+        const t = heavy[0]
+        days[t].exercises.push({ exerciseId: l, sets: sets(4, { reps: pct >= 0.8 ? 3 : 5, percent: pct, weight: orm[l] ? roundTo(orm[l]! * pct, rounding) : undefined }), restSec: 210 })
+      }
+    }
+    // Главные движения — в начало, порядок остального сохраняем
+    for (const d of days) d.exercises = d.exercises.map((e, i) => ({ e, i })).sort((a, b) => rank(a.e) - rank(b.e) || a.i - b.i).map(x => x.e)
     return { ...week, days: days.filter((d, i) => d.exercises.length > 0 || week.days[i].exercises.length === 0) }
   })
 }

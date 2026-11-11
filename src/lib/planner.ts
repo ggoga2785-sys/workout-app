@@ -11,7 +11,8 @@ import type { Catalog } from './catalog'
 import { instantiate } from './catalog'
 import { generateProgram, programWeeks } from './generator'
 import { LEVEL_LABELS, PL_METHOD_LABELS } from '../data/labels'
-import { applyFrequency, applyPriorities, describeFrequency, describePriorities } from './priorities'
+import { applyDayPins, applyFrequency, applyPriorities, describeDays, describeFrequency, describePriorities, DEFAULT_PRIORITY, LIFTS } from './priorities'
+import { LIFT_LABELS } from '../data/labels'
 
 type PhaseSrc = { kind: 'catalog'; program: CatalogProgram } | { kind: 'generic'; phase: 'offseason' | 'prep' }
 
@@ -106,7 +107,7 @@ export function planOptions(c: Catalog, s: ProgramSettings): PlanOption[] {
   })
 
   if (s.plPriority) {
-    const notes = [...describePriorities(s.plPriority), ...describeFrequency(s.plFrequency)]
+    const notes = [...describePriorities(s.plPriority), ...(s.plDays ? describeDays(s.plDays, s.daysPerWeek) : describeFrequency(s.plFrequency))]
     out.forEach(o => o.pros.push(...notes))
   }
   out.sort((a, b) => a.score - b.score)
@@ -157,6 +158,7 @@ export function buildPlan(
   if (s.plFrequency) shaped = applyFrequency(shaped, s.plFrequency, orm, rounding, exMap, prep)
   if (s.plPriority) shaped = applyPriorities(shaped, s.plPriority, orm, rounding, exMap, prep)
   if (s.plFrequency) shaped = applyFrequency(shaped, s.plFrequency, orm, rounding, exMap, prep)
+  if (s.plDays) shaped = applyDayPins(shaped, s.plDays, s.plPriority ?? DEFAULT_PRIORITY, orm, rounding, exMap, prep)
   const main = opt.phases[opt.phases.length - 1].src
   const base = main.kind === 'catalog'
     ? instantiate(main.program, orm, rounding, exMap)
@@ -165,9 +167,28 @@ export function buildPlan(
     ...base,
     name: opt.phases.length > 1 ? `Подготовка к старту: ${opt.method}` : opt.name,
     settings: { ...s, plMethod: main.kind === 'catalog' ? main.program.plMethod : 'generic', weeks: weeks.length },
-    weeks: shaped,
+    weeks: main.kind === 'generic' ? retitle(shaped, exMap) : shaped,
     phases,
     draft: main.kind === 'generic',
     description: base.description,
   }
+}
+
+/** Для своей периодизации название дня — по движениям в нём («День 1 · жим, присед (лёгкий)») */
+function retitle(weeks: ProgramWeek[], exMap: Map<string, Exercise>): ProgramWeek[] {
+  return weeks.map(w => ({
+    ...w,
+    days: w.days.map((d, i) => {
+      if (!d.exercises.length) return d
+      const parts: string[] = []
+      const order = [...new Set(d.exercises.map(e => exMap.get(e.exerciseId)?.lift).filter(Boolean))] as typeof LIFTS
+      for (const l of order) {
+        const ex = d.exercises.filter(e => exMap.get(e.exerciseId)?.lift === l)
+        if (!ex.length) continue
+        const light = ex.every(e => e.note === 'лёгкий' || e.note === 'лёгкий день')
+        parts.push(LIFT_LABELS[l].toLowerCase() + (light ? ' (лёгкий)' : ''))
+      }
+      return { ...d, title: `День ${i + 1}${parts.length ? ' · ' + parts.join(', ') : ''}` }
+    }),
+  }))
 }
