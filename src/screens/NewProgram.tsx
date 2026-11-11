@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import type { BodybuildingGoal, Discipline, Level, MainLift, PowerliftingFocus, PowerliftingPhase, ProgramSettings } from '../types'
-import { BB_GOAL_LABELS, DISCIPLINE_LABELS, LEVEL_LABELS, LIFT_LABELS, PL_FOCUS_LABELS, PL_PHASE_LABELS } from '../data/labels'
+import type { BodybuildingGoal, Discipline, Level, MainLift, PowerliftingPhase, ProgramSettings } from '../types'
+import { BB_GOAL_LABELS, DISCIPLINE_LABELS, LEVEL_LABELS, LIFT_LABELS, PL_PHASE_LABELS } from '../data/labels'
 import { generateProgram, programWeeks } from '../lib/generator'
 import { requiredLifts, useCatalog } from '../lib/catalog'
 import { buildPlan, planOptions, type PlanOption } from '../lib/planner'
 import { exerciseMap, useExercises, useStore } from '../store'
 import { formatDate } from '../lib/util'
+import { DEFAULT_PRIORITY, LIFTS, PRESETS, activeLifts, focusFrom } from '../lib/priorities'
+import { PRIORITY_HINTS, PRIORITY_LABELS } from '../data/labels'
+import type { LiftPriorities, LiftPriority } from '../types'
 
 /** Полоса фаз плана: ширина пропорциональна числу недель */
 function PhaseBar({ opt }: { opt: PlanOption }) {
@@ -69,6 +72,9 @@ export default function NewProgram() {
   const [showAll, setShowAll] = useState(false)
   const up = (p: Partial<ProgramSettings>) => { setS(prev => ({ ...prev, ...p })); setPicked(undefined) }
   const pl = s.discipline === 'powerlifting'
+  const prio: LiftPriorities = s.plPriority ?? DEFAULT_PRIORITY
+  const setPrio = (p: LiftPriorities) => up({ plPriority: p, plFocus: focusFrom(p) })
+  const noLifts = pl && activeLifts(prio).length === 0
   const prepNoDate = pl && s.plPhase === 'prep' && !s.competitionDate
   const tooSoon = pl && s.plPhase === 'prep' && !!s.competitionDate && programWeeks(s) < 2
 
@@ -76,10 +82,11 @@ export default function NewProgram() {
   const chosen = options.find(o => o.key === picked) ?? options[0]
   const needLifts: MainLift[] = useMemo(() => {
     if (!pl) return []
-    const set = new Set<MainLift>(s.plFocus === 'total' || !s.plFocus ? ['squat', 'bench', 'deadlift'] : [s.plFocus])
+    const active = activeLifts(prio)
+    const set = new Set<MainLift>(active)
     chosen?.phases.forEach(ph => ph.src.kind === 'catalog' && requiredLifts(ph.src.program, exMap).forEach(l => set.add(l)))
-    return (['squat', 'bench', 'deadlift'] as MainLift[]).filter(l => set.has(l))
-  }, [pl, s.plFocus, chosen, exMap])
+    return LIFTS.filter(l => set.has(l) && active.includes(l))
+  }, [pl, prio, chosen, exMap])
   const missing = needLifts.filter(l => !orm[l])
 
   const create = () => {
@@ -123,7 +130,24 @@ export default function NewProgram() {
         <>
           <section className="field">
             <label>Что тренируем</label>
-            <Choice<PowerliftingFocus> value={s.plFocus!} options={entries(PL_FOCUS_LABELS)} onChange={v => up({ plFocus: v, plMethod: v === 'bench' || v === 'total' ? s.plMethod : s.plMethod === 'verkhoshansky' ? 'generic' : s.plMethod })} />
+            <div className="chips">
+              {PRESETS.map(pr => (
+                <button key={pr.label} className={'chip' + (LIFTS.every(l => pr.p[l] === prio[l]) ? ' on' : '')} onClick={() => setPrio(pr.p)}>{pr.label}</button>
+              ))}
+            </div>
+            <div className="prio">
+              {LIFTS.map(l => (
+                <div key={l} className="prio-row">
+                  <b>{LIFT_LABELS[l]}</b>
+                  <div className="seg">
+                    {(['main', 'high', 'low', 'off'] as LiftPriority[]).map(v => (
+                      <button key={v} className={'seg-btn' + (prio[l] === v ? ' on ' + v : '')} onClick={() => setPrio({ ...prio, [l]: v })}>{PRIORITY_LABELS[v]}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="muted small">«Главное» — движение, к которому готовишься; под него подбирается программа. {LIFTS.map(l => `${LIFT_LABELS[l]}: ${PRIORITY_HINTS[prio[l]]}`).join('; ')}.</p>
           </section>
           <section className="field">
             <label>Период</label>
@@ -168,7 +192,7 @@ export default function NewProgram() {
         </section>
       )}
 
-      {pl && !prepNoDate && !tooSoon && (
+      {pl && !prepNoDate && !tooSoon && !noLifts && (
         <section className="field">
           <label>Подобранный план</label>
           {!catalog && <p className="muted">Подбираю…</p>}
@@ -184,8 +208,8 @@ export default function NewProgram() {
         </section>
       )}
 
-      <button className="btn primary wide" disabled={missing.length > 0 || prepNoDate || tooSoon} onClick={create}>
-        {prepNoDate ? 'Укажи дату соревнований' : missing.length ? `Введи 1ПМ: ${missing.map(l => LIFT_LABELS[l].toLowerCase()).join(', ')}` : 'Составить программу'}
+      <button className="btn primary wide" disabled={missing.length > 0 || prepNoDate || tooSoon || noLifts} onClick={create}>
+        {noLifts ? 'Выбери хотя бы одно движение' : prepNoDate ? 'Укажи дату соревнований' : missing.length ? `Введи 1ПМ: ${missing.map(l => LIFT_LABELS[l].toLowerCase()).join(', ')}` : 'Составить программу'}
       </button>
     </div>
   )

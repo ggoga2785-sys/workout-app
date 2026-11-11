@@ -1,4 +1,4 @@
-import type { Equipment, MuscleGroup, Discipline, BodybuildingGoal, PowerliftingFocus, PowerliftingPhase, PowerliftingMethod, Level, MainLift } from '../types'
+import type { LiftPriority, Equipment, MuscleGroup, Discipline, BodybuildingGoal, PowerliftingFocus, PowerliftingPhase, PowerliftingMethod, Level, MainLift } from '../types'
 
 export const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   chest: 'Грудь', back: 'Спина', shoulders: 'Плечи', biceps: 'Бицепс', triceps: 'Трицепс',
@@ -46,4 +46,14 @@ export const FIDELITY_LABELS: Record<'source-exact' | 'source-converted' | 'reco
   'source-exact': 'Точно по первоисточнику',
   'source-converted': 'По открытому источнику',
   reconstructed: 'Собрано по описанию автора',
+}
+
+export const PRIORITY_LABELS: Record<LiftPriority, string> = {
+  main: 'Главное', high: 'Высокий', low: 'Поддержка', off: 'Не делаю',
+}
+export const PRIORITY_HINTS: Record<LiftPriority, string> = {
+  main: 'готовлюсь к старту в этом движении',
+  high: 'тренирую регулярно, хочу прогресс',
+  low: 'изредка, без упора',
+  off: 'не делаю',
 }

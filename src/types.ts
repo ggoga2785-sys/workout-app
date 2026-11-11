@@ -32,6 +32,9 @@ export type Discipline = 'bodybuilding' | 'fitness' | 'powerlifting'
 export type BodybuildingGoal = 'mass' | 'recomp' | 'cut'
 export type PowerliftingFocus = 'total' | MainLift
 export type PowerliftingPhase = 'offseason' | 'prep'
+/** Приоритет движения: главное (соревновательное) / высокий / поддержка / не делаю */
+export type LiftPriority = 'main' | 'high' | 'low' | 'off'
+export type LiftPriorities = Record<MainLift, LiftPriority>
 /** Методика: generic — базовый шаблон, остальные — авторские циклы */
 export type PowerliftingMethod =
   | 'generic' | 'verkhoshansky' | 'sheiko' | 'rpe' | 'smolov' | 'russian'
@@ -44,6 +47,8 @@ export interface ProgramSettings {
   daysPerWeek: number
   bodybuildingGoal?: BodybuildingGoal
   plFocus?: PowerliftingFocus
+  /** Приоритет каждого движения; plFocus выводится из него */
+  plPriority?: LiftPriorities
   plPhase?: PowerliftingPhase
   plMethod?: PowerliftingMethod
   /** Дата соревнований (ISO yyyy-mm-dd) — для подготовки с подводкой */

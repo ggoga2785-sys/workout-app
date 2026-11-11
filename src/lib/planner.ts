@@ -11,6 +11,7 @@ import type { Catalog } from './catalog'
 import { instantiate } from './catalog'
 import { generateProgram, programWeeks } from './generator'
 import { LEVEL_LABELS, PL_METHOD_LABELS } from '../data/labels'
+import { applyPriorities, describePriorities } from './priorities'
 
 type PhaseSrc = { kind: 'catalog'; program: CatalogProgram } | { kind: 'generic'; phase: 'offseason' | 'prep' }
 
@@ -104,6 +105,10 @@ export function planOptions(c: Catalog, s: ProgramSettings): PlanOption[] {
     cons: ['шаблон приложения, а не авторская методика'],
   })
 
+  if (s.plPriority) {
+    const notes = describePriorities(s.plPriority)
+    out.forEach(o => o.pros.push(...notes))
+  }
   out.sort((a, b) => a.score - b.score)
   if (out.length) out[0].recommended = true
   return out
@@ -146,6 +151,9 @@ export function buildPlan(
     phases.push({ title: ph.title, startWeek: start, endWeek: weeks.length - 1, program: label, catalogId })
   })
 
+  const shaped = s.plPriority
+    ? applyPriorities(weeks, s.plPriority, orm, rounding, exMap, s.plPhase === 'prep')
+    : weeks
   const main = opt.phases[opt.phases.length - 1].src
   const base = main.kind === 'catalog'
     ? instantiate(main.program, orm, rounding, exMap)
@@ -154,7 +162,7 @@ export function buildPlan(
     ...base,
     name: opt.phases.length > 1 ? `Подготовка к старту: ${opt.method}` : opt.name,
     settings: { ...s, plMethod: main.kind === 'catalog' ? main.program.plMethod : 'generic', weeks: weeks.length },
-    weeks,
+    weeks: shaped,
     phases,
     draft: main.kind === 'generic',
     description: base.description,
