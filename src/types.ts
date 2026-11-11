@@ -49,6 +49,8 @@ export interface ProgramSettings {
   plFocus?: PowerliftingFocus
   /** Приоритет каждого движения; plFocus выводится из него */
   plPriority?: LiftPriorities
+  /** Сколько раз в неделю делать движение (0.5 = раз в 2 недели); нет значения — как в программе */
+  plFrequency?: Partial<Record<MainLift, number>>
   plPhase?: PowerliftingPhase
   plMethod?: PowerliftingMethod
   /** Дата соревнований (ISO yyyy-mm-dd) — для подготовки с подводкой */

@@ -70,8 +70,8 @@ function buildHypertrophyWeek(s: ProgramSettings, weekIdx: number, totalWeeks: n
   const template = isFitness
     ? FITNESS_DAYS.slice(0, Math.min(3, s.daysPerWeek))
     : s.split === 'upperlower' && s.daysPerWeek === 3
-      // Верх/низ на 3 дня: 4 тренировки по кругу (ВА, НА, ВБ | НБ, ВА, НА | …)
-      ? [0, 1, 2].map(d => SPLITS[4][(weekIdx * 3 + d) % 4])
+      // Верх/низ на 3 дня: каждую неделю верх А — низ — верх Б
+      ? [SPLITS[4][0], SPLITS[4][1], SPLITS[4][2]]
       : SPLITS[Math.min(5, Math.max(2, s.daysPerWeek))]
 
   const days: ProgramDay[] = template.map(d => ({

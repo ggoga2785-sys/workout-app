@@ -11,7 +11,7 @@ import type { Catalog } from './catalog'
 import { instantiate } from './catalog'
 import { generateProgram, programWeeks } from './generator'
 import { LEVEL_LABELS, PL_METHOD_LABELS } from '../data/labels'
-import { applyPriorities, describePriorities } from './priorities'
+import { applyFrequency, applyPriorities, describeFrequency, describePriorities } from './priorities'
 
 type PhaseSrc = { kind: 'catalog'; program: CatalogProgram } | { kind: 'generic'; phase: 'offseason' | 'prep' }
 
@@ -106,7 +106,7 @@ export function planOptions(c: Catalog, s: ProgramSettings): PlanOption[] {
   })
 
   if (s.plPriority) {
-    const notes = describePriorities(s.plPriority)
+    const notes = [...describePriorities(s.plPriority), ...describeFrequency(s.plFrequency)]
     out.forEach(o => o.pros.push(...notes))
   }
   out.sort((a, b) => a.score - b.score)
@@ -151,9 +151,12 @@ export function buildPlan(
     phases.push({ title: ph.title, startWeek: start, endWeek: weeks.length - 1, program: label, catalogId })
   })
 
-  const shaped = s.plPriority
-    ? applyPriorities(weeks, s.plPriority, orm, rounding, exMap, s.plPhase === 'prep')
-    : weeks
+  const prep = s.plPhase === 'prep'
+  // Частота до приоритетов — чтобы добавляемые движения легли в освободившиеся дни, и после — для добавленных
+  let shaped = weeks
+  if (s.plFrequency) shaped = applyFrequency(shaped, s.plFrequency, orm, rounding, exMap, prep)
+  if (s.plPriority) shaped = applyPriorities(shaped, s.plPriority, orm, rounding, exMap, prep)
+  if (s.plFrequency) shaped = applyFrequency(shaped, s.plFrequency, orm, rounding, exMap, prep)
   const main = opt.phases[opt.phases.length - 1].src
   const base = main.kind === 'catalog'
     ? instantiate(main.program, orm, rounding, exMap)

@@ -7,7 +7,7 @@ import { requiredLifts, useCatalog } from '../lib/catalog'
 import { buildPlan, planOptions, type PlanOption } from '../lib/planner'
 import { exerciseMap, useExercises, useStore } from '../store'
 import { formatDate } from '../lib/util'
-import { DEFAULT_PRIORITY, LIFTS, PRESETS, activeLifts, focusFrom } from '../lib/priorities'
+import { DEFAULT_PRIORITY, FREQ_OPTIONS, LIFTS, PRESETS, activeLifts, focusFrom } from '../lib/priorities'
 import { PRIORITY_HINTS, PRIORITY_LABELS } from '../data/labels'
 import type { LiftPriorities, LiftPriority } from '../types'
 
@@ -74,6 +74,8 @@ export default function NewProgram() {
   const pl = s.discipline === 'powerlifting'
   const prio: LiftPriorities = s.plPriority ?? DEFAULT_PRIORITY
   const setPrio = (p: LiftPriorities) => up({ plPriority: p, plFocus: focusFrom(p) })
+  const freq = s.plFrequency ?? {}
+  const setFreq = (l: MainLift, v: number) => up({ plPriority: prio, plFocus: focusFrom(prio), plFrequency: { ...freq, [l]: v || undefined } })
   const noLifts = pl && activeLifts(prio).length === 0
   const prepNoDate = pl && s.plPhase === 'prep' && !s.competitionDate
   const tooSoon = pl && s.plPhase === 'prep' && !!s.competitionDate && programWeeks(s) < 2
@@ -122,7 +124,7 @@ export default function NewProgram() {
         <section className="field">
           <label>Схема на 3 дня</label>
           <Choice<'fullbody' | 'upperlower'> value={s.split ?? 'fullbody'} options={[['fullbody', 'Всё тело'], ['upperlower', 'Верх / низ']]} onChange={v => up({ split: v })} />
-          {s.split === 'upperlower' && <p className="muted">Четыре тренировки (Верх А, Низ А, Верх Б, Низ Б) идут по кругу.</p>}
+          {s.split === 'upperlower' && <p className="muted">Каждую неделю: пн — верх, ср — низ, пт — верх.</p>}
         </section>
       )}
 
@@ -132,7 +134,7 @@ export default function NewProgram() {
             <label>Что тренируем</label>
             <div className="chips">
               {PRESETS.map(pr => (
-                <button key={pr.label} className={'chip' + (LIFTS.every(l => pr.p[l] === prio[l]) ? ' on' : '')} onClick={() => setPrio(pr.p)}>{pr.label}</button>
+                <button key={pr.label} className={'chip' + (LIFTS.every(l => pr.p[l] === prio[l]) ? ' on' : '')} onClick={() => up({ plPriority: pr.p, plFocus: focusFrom(pr.p), plFrequency: pr.f })}>{pr.label}</button>
               ))}
             </div>
             <div className="prio">
@@ -144,6 +146,14 @@ export default function NewProgram() {
                       <button key={v} className={'seg-btn' + (prio[l] === v ? ' on ' + v : '')} onClick={() => setPrio({ ...prio, [l]: v })}>{PRIORITY_LABELS[v]}</button>
                     ))}
                   </div>
+                  {prio[l] !== 'off' && (
+                    <div className="freq">
+                      <span>Раз в неделю:</span>
+                      {FREQ_OPTIONS.map(([v, t]) => (
+                        <button key={v} className={'chip small' + ((freq[l] ?? 0) === v ? ' on' : '')} onClick={() => setFreq(l, v)}>{t}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
