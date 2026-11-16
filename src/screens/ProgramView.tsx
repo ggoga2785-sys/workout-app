@@ -4,11 +4,13 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { exerciseMap, useExercises, useStore } from '../store'
 import { groupSets } from '../components/SetLine'
 import { workoutFromDay } from '../lib/startDay'
+import { applyAccessories } from '../lib/accessories'
 
 export default function ProgramView() {
   const { id } = useParams()
   const nav = useNavigate()
-  const { programs, activeProgramId, cursor, setActiveProgram, setCursor, startWorkout, current } = useStore()
+  const { programs, activeProgramId, cursor, setActiveProgram, setCursor, startWorkout, current, updateProgram } = useStore()
+  const [rebuilt, setRebuilt] = useState(false)
   const exMap = exerciseMap(useExercises())
   const p = programs.find(x => x.id === id)
   const [open, setOpen] = useState(p && p.id === activeProgramId ? cursor.week : 0)
@@ -48,6 +50,12 @@ export default function ProgramView() {
           Заменить программу
         </button>
       )}
+      {p.settings.discipline === 'powerlifting' && (
+        <ConfirmButton className="btn" ask="Пересобрать подсобку? Основная работа не изменится" onConfirm={() => { updateProgram({ ...p, weeks: applyAccessories(p.weeks, exMap, p.settings.plPhase === 'prep') }); setRebuilt(true) }}>
+          Обновить подсобку (спина, руки, плечи, грудь)
+        </ConfirmButton>
+      )}
+      {rebuilt && <p className="note">Подсобка обновлена: больше спины и рук, задняя дельта раз в 3 недели.</p>}
       {p.meta && <p className="muted small">{p.meta.author}{p.meta.howToUse ? ` · ${p.meta.howToUse}` : ''}</p>}
       {p.meta?.progression && <p className="muted small">Прогрессия: {p.meta.progression}</p>}
       {p.draft && <p className="note">Черновой шаблон: структура и проценты временные, методики будут добавлены позже.</p>}

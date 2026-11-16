@@ -123,7 +123,7 @@ function plWeekPlan(weekIdx: number, total: number, prep: boolean): PLWeekPlan {
 
 const ASSIST: Record<MainLift, string[]> = {
   squat: ['squat-pause', 'leg-press', 'leg-curl-lying', 'hanging-leg-raise'],
-  bench: ['bench-close', 'db-row', 'pushdown-rope', 'face-pull'],
+  bench: ['bench-close', 'db-row', 'pushdown-rope', 'bb-curl'],
   deadlift: ['deadlift-deficit', 'bb-row', 'hyperext', 'ab-wheel'],
 }
 

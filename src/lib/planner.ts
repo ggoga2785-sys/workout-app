@@ -13,6 +13,7 @@ import { generateProgram, programWeeks } from './generator'
 import { LEVEL_LABELS, PL_METHOD_LABELS } from '../data/labels'
 import { applyDayPins, applyFrequency, applyPriorities, describeDays, describeFrequency, describePriorities, DEFAULT_PRIORITY, LIFTS } from './priorities'
 import { LIFT_LABELS } from '../data/labels'
+import { applyAccessories } from './accessories'
 
 type PhaseSrc = { kind: 'catalog'; program: CatalogProgram } | { kind: 'generic'; phase: 'offseason' | 'prep' }
 
@@ -159,6 +160,7 @@ export function buildPlan(
   if (s.plPriority) shaped = applyPriorities(shaped, s.plPriority, orm, rounding, exMap, prep)
   if (s.plFrequency) shaped = applyFrequency(shaped, s.plFrequency, orm, rounding, exMap, prep)
   if (s.plDays) shaped = applyDayPins(shaped, s.plDays, s.plPriority ?? DEFAULT_PRIORITY, orm, rounding, exMap, prep)
+  shaped = applyAccessories(shaped, exMap, prep)
   const main = opt.phases[opt.phases.length - 1].src
   const base = main.kind === 'catalog'
     ? instantiate(main.program, orm, rounding, exMap)

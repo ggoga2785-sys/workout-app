@@ -24,6 +24,7 @@ interface State {
   setProfile: (p: Partial<Profile>) => void
   addCustomExercise: (e: Omit<Exercise, 'id' | 'custom'>) => void
   addProgram: (p: Program) => void
+  updateProgram: (p: Program) => void
   removeProgram: (id: string) => void
   setActiveProgram: (id?: string) => void
   setCursor: (week: number, day: number) => void
@@ -54,6 +55,7 @@ export const useStore = create<State>()(
       clearSummary: () => set({ lastSummaryId: undefined }),
       setProfile: p => set(s => ({ profile: { ...s.profile, ...p } })),
       addCustomExercise: e => set(s => ({ customExercises: [...s.customExercises, { ...e, id: 'c-' + uid(), custom: true }] })),
+      updateProgram: p => set(s => ({ programs: s.programs.map(x => (x.id === p.id ? p : x)) })),
       addProgram: p => set(s => ({ programs: [p, ...s.programs], activeProgramId: p.id, cursor: { week: 0, day: 0 } })),
       removeProgram: id => set(s => ({
         programs: s.programs.filter(p => p.id !== id),
