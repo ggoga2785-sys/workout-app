@@ -140,7 +140,7 @@ export default function NewProgram() {
         <section className="field">
           <label>Схема на 3 дня</label>
           <Choice<'fullbody' | 'upperlower'> value={s.split ?? 'fullbody'} options={[['fullbody', 'Всё тело'], ['upperlower', 'Верх / низ']]} onChange={v => up({ split: v })} />
-          {s.split === 'upperlower' && <p className="muted">Каждую неделю: пн — верх, ср — низ, пт — верх.</p>}
+          {s.split === 'upperlower' && <p className="muted">Каждую неделю: пн — верх, ср — низ + руки, пт — верх. Упор на грудь и руки: ~18 подходов на грудь, ~14 на бицепс, ~12 на трицепс в неделю.</p>}
         </section>
       )}
 

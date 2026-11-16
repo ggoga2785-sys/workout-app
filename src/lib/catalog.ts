@@ -16,7 +16,7 @@ export function loadCatalog(): Promise<Catalog> {
   if (cache) return Promise.resolve(cache)
   return import('../data/programs.json').then(m => {
     const c = m.default as unknown as Catalog
-    return (cache = { ...c, programs: [...c.programs, ...EXTRA_PROGRAMS] })
+    return (cache = { ...c, programs: [...c.programs, ...EXTRA_PROGRAMS.filter(x => !c.programs.some(p => p.id === x.id))] })
   })
 }
 

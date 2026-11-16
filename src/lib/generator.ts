@@ -55,6 +55,14 @@ const SPLITS: Record<number, { title: string; slots: Slot[] }[]> = {
   ],
 }
 
+// Верх/низ/верх на 3 дня: каждую неделю пн — верх (сила + грудь), ср — низ + руки, пт — верх (объём на грудь и руки).
+// Прямых подходов в неделю: грудь ~18, бицепс ~14, трицепс ~12 (как в программе upper-lower-3 из базы)
+const UPPER_LOWER_3: { title: string; slots: Slot[] }[] = [
+  { title: 'Верх А · сила + грудь', slots: [['bench', true], ['db-incline', true], ['dips', true], ['bb-row', true], ['lat-pulldown', true], ['ohp', true], ['skull-crusher', false], ['ez-curl', false], ['incline-curl', false]] },
+  { title: 'Низ + руки', slots: [['squat', true], ['rdl', true], ['leg-press', true], ['leg-curl-lying', false], ['calf-standing', false], ['cable-curl', false], ['pushdown-rope', false]] },
+  { title: 'Верх Б · грудь и руки', slots: [['bench-incline', true], ['hammer-chest', true], ['cable-fly', false], ['hammer-row', true], ['seated-row', true], ['lateral-raise', false], ['bench-close', true], ['cable-overhead-ext', false], ['preacher-curl', false], ['hammer-curl', false]] },
+]
+
 const FITNESS_DAYS: { title: string; slots: Slot[] }[] = [
   { title: 'Общая А', slots: [['goblet-squat', true], ['push-up', true], ['lat-pulldown', true], ['hip-thrust', true], ['plank', false], ['bike', false]] },
   { title: 'Общая Б', slots: [['leg-press', true], ['machine-chest', true], ['seated-row', true], ['kb-swing', true], ['face-pull', false], ['treadmill', false]] },
@@ -70,8 +78,8 @@ function buildHypertrophyWeek(s: ProgramSettings, weekIdx: number, totalWeeks: n
   const template = isFitness
     ? FITNESS_DAYS.slice(0, Math.min(3, s.daysPerWeek))
     : s.split === 'upperlower' && s.daysPerWeek === 3
-      // Верх/низ на 3 дня: каждую неделю верх А — низ — верх Б
-      ? [SPLITS[4][0], SPLITS[4][1], SPLITS[4][2]]
+      // Верх/низ на 3 дня: каждую неделю верх А — низ + руки — верх Б
+      ? UPPER_LOWER_3
       : SPLITS[Math.min(5, Math.max(2, s.daysPerWeek))]
 
   const days: ProgramDay[] = template.map(d => ({
