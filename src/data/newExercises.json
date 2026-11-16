@@ -1,0 +1,95 @@
+[
+ {
+  "id": "deadlift-to-knee",
+  "name": "Тяга до колен (с остановкой)",
+  "primary": "back",
+  "secondary": [
+   "hamstrings",
+   "glutes"
+  ],
+  "equipment": "barbell",
+  "mechanics": "compound",
+  "lift": "deadlift"
+ },
+ {
+  "id": "power-clean",
+  "name": "Взятие штанги на грудь",
+  "primary": "fullbody",
+  "secondary": [
+   "back",
+   "quads",
+   "glutes"
+  ],
+  "equipment": "barbell",
+  "mechanics": "compound"
+ },
+ {
+  "id": "glute-ham-raise",
+  "name": "Ягодично-бицепсный подъём (GHR)",
+  "primary": "hamstrings",
+  "secondary": [
+   "glutes"
+  ],
+  "equipment": "bodyweight",
+  "mechanics": "compound"
+ },
+ {
+  "id": "reverse-hyper",
+  "name": "Обратная гиперэкстензия",
+  "primary": "glutes",
+  "secondary": [
+   "hamstrings",
+   "back"
+  ],
+  "equipment": "machine",
+  "mechanics": "compound"
+ },
+ {
+  "id": "tricep-kickback",
+  "name": "Разгибание руки с гантелью в наклоне",
+  "primary": "triceps",
+  "equipment": "dumbbell",
+  "mechanics": "isolation"
+ },
+ {
+  "id": "concentration-curl",
+  "name": "Концентрированный подъём на бицепс",
+  "primary": "biceps",
+  "equipment": "dumbbell",
+  "mechanics": "isolation"
+ },
+ {
+  "id": "jm-press",
+  "name": "JM-жим (жим Джей-Эм)",
+  "primary": "triceps",
+  "secondary": [
+   "chest"
+  ],
+  "equipment": "barbell",
+  "mechanics": "compound"
+ },
+ {
+  "id": "bench-chains",
+  "name": "Жим лёжа с резиной/цепями",
+  "primary": "chest",
+  "secondary": [
+   "triceps",
+   "shoulders"
+  ],
+  "equipment": "barbell",
+  "mechanics": "compound",
+  "lift": "bench"
+ },
+ {
+  "id": "squat-box-bands",
+  "name": "Приседания на ящик с резиной",
+  "primary": "quads",
+  "secondary": [
+   "glutes",
+   "hamstrings"
+  ],
+  "equipment": "barbell",
+  "mechanics": "compound",
+  "lift": "squat"
+ }
+]
