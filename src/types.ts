@@ -200,6 +200,11 @@ export interface Profile {
   timerSound?: boolean
   /** Автостарт таймера отдыха после отмеченного подхода */
   autoRest?: boolean
+  /** Жёсткие фразы с матом */
+  harsh?: boolean
+  /** Уведомления об окончании отдыха через ntfy */
+  notify?: boolean
+  ntfyTopic?: string
 }
 
 export interface BodyweightEntry { date: string; kg: number }

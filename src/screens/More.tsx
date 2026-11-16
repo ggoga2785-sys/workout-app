@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
-import { IconCalc, IconList, IconUser } from '../art/Icons'
+import { IconCalc, IconList, IconUser, IconChart } from '../art/Icons'
 import { Crest } from '../art/Illustrations'
 
 const tiles = [
+  { to: '/legends', title: 'Зал славы', sub: 'Плакаты легенд и жёсткие лозунги', Icon: IconChart },
   { to: '/exercises', title: 'Упражнения', sub: 'База на 130 упражнений и свои', Icon: IconList },
   { to: '/tools', title: 'Инструменты', sub: 'Блины, 1ПМ, проценты, RPE', Icon: IconCalc },
   { to: '/profile', title: 'Профиль', sub: '1ПМ, вес, настройки, копия данных', Icon: IconUser },

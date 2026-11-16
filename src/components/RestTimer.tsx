@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
 import { checkTimerEnd, unlockAudio, useTimer } from '../lib/timer'
 import { useStore } from '../store'
+import { phrase } from '../art/Legends'
 
 export default function RestTimer() {
   const { endAt, total, start, add, stop } = useTimer()
   const sound = useStore(s => s.profile.timerSound ?? true)
+  const harsh = useStore(s => s.profile.harsh ?? true)
+  const label = useTimer(s => s.label)
+  const [line, setLine] = useState(() => phrase(harsh))
+  useEffect(() => setLine(phrase(harsh)), [endAt, harsh])
   const [now, setNow] = useState(Date.now())
   const [ended, setEnded] = useState(false)
   useEffect(() => {
@@ -27,10 +32,11 @@ export default function RestTimer() {
         </>
       ) : (
         <>
-          <span className="muted small">{ended ? 'Отдых окончен — к штанге!' : 'Отдых:'}</span>
+          <span className="muted small">{ended ? line : 'Отдых:'}</span>
           {[60, 120, 180, 300].map(s => <button key={s} className="chip" onClick={() => { unlockAudio(); start(s) }}>{s / 60} мин</button>)}
         </>
       )}
+      {running && <div className="timer-next"><b>{line}</b>{label && <span>Дальше: {label}</span>}</div>}
       {running && <div className="bar"><i style={{ width: `${(left / Math.max(1, total)) * 100}%` }} /></div>}
     </div>
   )

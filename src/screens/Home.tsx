@@ -4,6 +4,7 @@ import { workoutFromDay } from '../lib/startDay'
 import { formatDate, weeksUntil } from '../lib/util'
 import { groupSets } from '../components/SetLine'
 import { Strongman, sloganOfDay } from '../art/Illustrations'
+import { LegendPoster, legendOfDay } from '../art/Legends'
 import { doneSets, tonnage, weekStreak, weeklyTonnage } from '../lib/stats'
 
 const greeting = () => {
@@ -37,6 +38,8 @@ export default function Home() {
         <div className="stat"><b>{(week.v / 1000).toFixed(1)}т</b><span>тоннаж недели</span></div>
         <div className="stat"><b>{weekStreak(workouts)}</b><span>недель подряд</span></div>
       </div>
+
+      <Link to="/legends" className="legend-link"><LegendPoster l={legendOfDay()} harsh={profile.harsh ?? true} /></Link>
 
       {current && (
         <Link to="/workout" className="card accent">

@@ -9,12 +9,14 @@ import { PlateView } from '../components/Plates'
 import { estimate1RM, formatDate } from '../lib/util'
 import { doneSets, lastPerformance, newRecords, tonnage } from '../lib/stats'
 import { unlockAudio, useTimer } from '../lib/timer'
-import { Strongman, Crest, sloganOfDay } from '../art/Illustrations'
+import { Strongman, Crest } from '../art/Illustrations'
+import { LegendPoster, legendOfDay } from '../art/Legends'
+import { setBadge } from '../lib/notify'
 import type { LoggedSet, Workout } from '../types'
 
 const mins = (a: string, b?: string) => Math.max(1, Math.round(((b ? new Date(b).getTime() : Date.now()) - new Date(a).getTime()) / 60000))
 
-function Summary({ w, all, onClose }: { w: Workout; all: Workout[]; onClose: () => void }) {
+function Summary({ w, all, onClose, harsh }: { w: Workout; all: Workout[]; onClose: () => void; harsh: boolean }) {
   const exMap = exerciseMap(useExercises())
   const prs = useMemo(() => newRecords(all, w), [all, w])
   return (
@@ -34,7 +36,7 @@ function Summary({ w, all, onClose }: { w: Workout; all: Workout[]; onClose: () 
           ))}
         </div>
       )}
-      <p className="muted" style={{ textAlign: 'center' }}>{sloganOfDay()}</p>
+      <LegendPoster l={legendOfDay(3)} harsh={harsh} compact />
       <button className="btn primary wide" onClick={onClose}>Отлично</button>
     </div>
   )
@@ -49,6 +51,8 @@ export default function WorkoutScreen() {
   const startTimer = useTimer(s => s.start)
   const [, tick] = useState(0)
   useEffect(() => { const t = setInterval(() => tick(x => x + 1), 30000); return () => clearInterval(t) }, [])
+  const doneNow = current ? doneSets(current) : 0
+  useEffect(() => setBadge(doneNow), [doneNow])
 
   const summary = lastSummaryId ? workouts.find(w => w.id === lastSummaryId) : undefined
 
@@ -57,7 +61,7 @@ export default function WorkoutScreen() {
       <div className="screen">
         <div className="eyebrow">Дневник</div>
         <h1>Тренировка</h1>
-        {summary && <Summary w={summary} all={workouts} onClose={clearSummary} />}
+        {summary && <Summary w={summary} all={workouts} onClose={clearSummary} harsh={profile.harsh ?? true} />}
         {!summary && (
           <div className="card">
             <p className="muted">Начни тренировку из программы на главной или запиши свободную.</p>
@@ -93,10 +97,18 @@ export default function WorkoutScreen() {
       ...w,
       exercises: w.exercises.map((e, i) => i !== ei ? e : { ...e, sets: e.sets.map((s, j) => j !== si ? s : { ...s, ...patch }) }),
     }))
+  const nextLabel = (ei: number, si: number) => {
+    const ex = current.exercises
+    for (let i = ei; i < ex.length; i++) {
+      const k = ex[i].sets.findIndex((s, j) => !s.done && !(i === ei && j === si))
+      if (k >= 0) { const s = ex[i].sets[k]; return `${exMap.get(ex[i].exerciseId)?.name ?? ex[i].exerciseId} — подход ${k + 1} из ${ex[i].sets.length}${s.weight ? `, ${s.weight} кг × ${s.reps}` : ''}` }
+    }
+    return 'последний подход сделан — заканчивай тренировку'
+  }
   const toggleDone = (ei: number, si: number, done: boolean) => {
     unlockAudio()
     setField(ei, si, { done })
-    if (done && (profile.autoRest ?? true)) startTimer(current.exercises[ei].restSec ?? 120)
+    if (done && (profile.autoRest ?? true)) startTimer(current.exercises[ei].restSec ?? 120, nextLabel(ei, si))
   }
   const addSet = (ei: number) => updateCurrent(w => ({
     ...w,

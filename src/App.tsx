@@ -11,7 +11,12 @@ import ProfileScreen from './screens/ProfileScreen'
 import Progress from './screens/Progress'
 import Tools from './screens/Tools'
 import More from './screens/More'
+import { useEffect } from 'react'
+import Legends from './screens/Legends'
 import { useStore } from './store'
+import { useTimer } from './lib/timer'
+import { cancelRestPush, hasPending, scheduleRestPush } from './lib/notify'
+import { phrase } from './art/Legends'
 import { IconBarbell, IconChart, IconHome, IconMore, IconPlan } from './art/Icons'
 
 const tabs = [
@@ -24,6 +29,20 @@ const tabs = [
 
 export default function App() {
   const live = useStore(s => !!s.current)
+  useEffect(() => {
+    // Свернул приложение во время отдыха — просим ntfy прислать пуш к концу отдыха; вернулся — отменяем
+    const onHide = () => {
+      const { profile } = useStore.getState()
+      if (!profile.notify || !profile.ntfyTopic) return
+      const { endAt, label } = useTimer.getState()
+      if (document.visibilityState === 'hidden') {
+        if (endAt && !hasPending()) scheduleRestPush(profile.ntfyTopic, (endAt - Date.now()) / 1000, phrase(profile.harsh ?? true), label ? `Дальше: ${label}` : 'Отдых окончен')
+      } else if (hasPending()) cancelRestPush(profile.ntfyTopic)
+    }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', onHide)
+    return () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', onHide) }
+  }, [])
   return (
     <div className="app">
       <main className="content">
@@ -35,6 +54,7 @@ export default function App() {
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/catalog/:id" element={<CatalogDetail />} />
           <Route path="/workout" element={<WorkoutScreen />} />
+          <Route path="/legends" element={<Legends />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/more" element={<More />} />
           <Route path="/tools" element={<Tools />} />

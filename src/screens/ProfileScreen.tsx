@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useStore } from '../store'
 import { LIFT_LABELS } from '../data/labels'
 import type { MainLift } from '../types'
+import NotifySettings from '../components/NotifySettings'
 
 export default function ProfileScreen() {
   const s = useStore()
@@ -40,6 +41,7 @@ export default function ProfileScreen() {
         <label className="toggle"><input id="auto-rest" type="checkbox" checked={profile.autoRest ?? true} onChange={e => setProfile({ autoRest: e.target.checked })} />Запускать таймер отдыха после отмеченного подхода</label>
         <label className="toggle"><input id="timer-sound" type="checkbox" checked={profile.timerSound ?? true} onChange={e => setProfile({ timerSound: e.target.checked })} />Звук и вибрация в конце отдыха</label>
       </div>
+      <NotifySettings />
       <div className="card">
         <h2>Разовые максимумы (1ПМ)</h2>
         <div className="row">

@@ -1,10 +1,13 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 /** Таймер отдыха — общий для всего приложения, переживает переходы между экранами */
 interface TimerState {
   endAt?: number
   total: number
-  start: (sec: number) => void
+  /** Что дальше: «Жим лёжа — подход 3 из 5» (для уведомления) */
+  label?: string
+  start: (sec: number, label?: string) => void
   add: (sec: number) => void
   stop: () => void
 }
@@ -35,19 +38,20 @@ function gong() {
   try { navigator.vibrate?.([200, 100, 200]) } catch { /* ignore */ }
 }
 
-export const useTimer = create<TimerState>((set, get) => ({
+/** Время окончания хранится меткой времени и переживает сворачивание и перезапуск приложения */
+export const useTimer = create<TimerState>()(persist((set, get) => ({
   total: 0,
-  start: sec => set({ endAt: Date.now() + sec * 1000, total: sec }),
+  start: (sec, label) => set({ endAt: Date.now() + sec * 1000, total: sec, label }),
   add: sec => { const e = get().endAt; if (e) set({ endAt: e + sec * 1000, total: get().total + sec }) },
   stop: () => set({ endAt: undefined }),
-}))
+}), { name: 'zhelezo-timer', partialize: s => ({ endAt: s.endAt, total: s.total, label: s.label }) }))
 
 /** Проверка окончания: вызывается тиком из компонента таймера */
 export function checkTimerEnd(sound: boolean) {
   const { endAt } = useTimer.getState()
   if (endAt && Date.now() >= endAt && fired !== endAt) {
     fired = endAt
-    if (sound) gong()
+    if (sound && !document.hidden && Date.now() - endAt < 5000) gong()
     return true
   }
   return false
