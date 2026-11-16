@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Exercise, LoggedExercise, Profile, Program, Workout } from './types'
+import type { BodyweightEntry, Exercise, LoggedExercise, Profile, Program, Workout } from './types'
 import { BASE_EXERCISES } from './data/exercises'
 import { uid } from './lib/util'
 
@@ -13,6 +13,13 @@ interface State {
   cursor: { week: number; day: number }
   workouts: Workout[]
   current?: Workout
+  bodyweight: BodyweightEntry[]
+  /** Итог последней завершённой тренировки (для экрана «Тренировка завершена») */
+  lastSummaryId?: string
+
+  addBodyweight: (kg: number, date?: string) => void
+  removeBodyweight: (date: string) => void
+  clearSummary: () => void
 
   setProfile: (p: Partial<Profile>) => void
   addCustomExercise: (e: Omit<Exercise, 'id' | 'custom'>) => void
@@ -37,7 +44,14 @@ export const useStore = create<State>()(
       programs: [],
       cursor: { week: 0, day: 0 },
       workouts: [],
+      bodyweight: [],
 
+      addBodyweight: (kg, date = new Date().toISOString().slice(0, 10)) => set(s => ({
+        bodyweight: [...s.bodyweight.filter(b => b.date !== date), { date, kg }].sort((a, b) => a.date.localeCompare(b.date)),
+        profile: { ...s.profile, bodyweight: kg },
+      })),
+      removeBodyweight: date => set(s => ({ bodyweight: s.bodyweight.filter(b => b.date !== date) })),
+      clearSummary: () => set({ lastSummaryId: undefined }),
       setProfile: p => set(s => ({ profile: { ...s.profile, ...p } })),
       addCustomExercise: e => set(s => ({ customExercises: [...s.customExercises, { ...e, id: 'c-' + uid(), custom: true }] })),
       addProgram: p => set(s => ({ programs: [p, ...s.programs], activeProgramId: p.id, cursor: { week: 0, day: 0 } })),
@@ -54,7 +68,7 @@ export const useStore = create<State>()(
         const { current, programs, activeProgramId } = get()
         if (!current) return
         const done = { ...current, finishedAt: new Date().toISOString() }
-        const patch: Partial<State> = { workouts: [done, ...get().workouts], current: undefined }
+        const patch: Partial<State> = { workouts: [done, ...get().workouts], current: undefined, lastSummaryId: done.id }
         // Сдвигаем курсор программы на следующий день
         const prog = programs.find(p => p.id === activeProgramId)
         if (prog && current.programId === prog.id && current.week !== undefined && current.day !== undefined) {
@@ -76,6 +90,7 @@ export const useStore = create<State>()(
           activeProgramId: d.activeProgramId,
           cursor: d.cursor ?? { week: 0, day: 0 },
           workouts: d.workouts ?? [],
+          bodyweight: d.bodyweight ?? [],
         })
       },
     }),

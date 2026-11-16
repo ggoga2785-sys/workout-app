@@ -1,0 +1,10 @@
+const P = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+export const IconHome = () => <svg viewBox="0 0 24 24" {...P}><path d="M3 11 12 4l9 7" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></svg>
+export const IconPlan = () => <svg viewBox="0 0 24 24" {...P}><rect x="5" y="4" width="14" height="17" rx="1.5" /><path d="M9 4V3h6v1M8.5 10h7M8.5 14h7M8.5 18h4" /></svg>
+export const IconBarbell = () => <svg viewBox="0 0 24 24" {...P}><path d="M2 12h20" /><rect x="4" y="7" width="3" height="10" rx="1" fill="currentColor" /><rect x="17" y="7" width="3" height="10" rx="1" fill="currentColor" /><rect x="7" y="9" width="2" height="6" rx=".5" /><rect x="15" y="9" width="2" height="6" rx=".5" /></svg>
+export const IconChart = () => <svg viewBox="0 0 24 24" {...P}><path d="M4 20h16" /><path d="M5 16l5-5 4 3 6-7" /><circle cx="20" cy="7" r="1.3" fill="currentColor" /></svg>
+export const IconMore = () => <svg viewBox="0 0 24 24" {...P}><circle cx="5" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="12" r="1.6" fill="currentColor" /><circle cx="19" cy="12" r="1.6" fill="currentColor" /></svg>
+export const IconList = () => <svg viewBox="0 0 24 24" {...P}><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1" fill="currentColor" /><circle cx="4.5" cy="12" r="1" fill="currentColor" /><circle cx="4.5" cy="18" r="1" fill="currentColor" /></svg>
+export const IconCalc = () => <svg viewBox="0 0 24 24" {...P}><rect x="5" y="3" width="14" height="18" rx="1.5" /><path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" strokeWidth="2.4" /></svg>
+export const IconUser = () => <svg viewBox="0 0 24 24" {...P}><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>
+export const IconScale = () => <svg viewBox="0 0 24 24" {...P}><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8.5 10a4.5 4.5 0 0 1 7 0" /><path d="M12 10l1.5-2" /></svg>

@@ -1,47 +1,78 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import ConfirmButton from '../components/ConfirmButton'
-import { useEffect, useState } from 'react'
 import { exerciseMap, emptyLogged, useExercises, useStore } from '../store'
 import ExercisePicker from '../components/ExercisePicker'
-import { plannedLabel } from '../components/SetLine'
+import { shortPlan } from '../components/SetLine'
+import RestTimer from '../components/RestTimer'
+import { PlateView } from '../components/Plates'
 import { estimate1RM, formatDate } from '../lib/util'
-import type { LoggedSet } from '../types'
+import { doneSets, lastPerformance, newRecords, tonnage } from '../lib/stats'
+import { unlockAudio, useTimer } from '../lib/timer'
+import { Strongman, Crest, sloganOfDay } from '../art/Illustrations'
+import type { LoggedSet, Workout } from '../types'
 
-function RestTimer() {
-  const [left, setLeft] = useState(0)
-  useEffect(() => {
-    if (left <= 0) return
-    const t = setTimeout(() => setLeft(l => l - 1), 1000)
-    return () => clearTimeout(t)
-  }, [left])
+const mins = (a: string, b?: string) => Math.max(1, Math.round(((b ? new Date(b).getTime() : Date.now()) - new Date(a).getTime()) / 60000))
+
+function Summary({ w, all, onClose }: { w: Workout; all: Workout[]; onClose: () => void }) {
+  const exMap = exerciseMap(useExercises())
+  const prs = useMemo(() => newRecords(all, w), [all, w])
   return (
-    <div className="timer">
-      <span>Отдых: <b>{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}</b></span>
-      {[60, 120, 180, 300].map(s => <button key={s} className="chip" onClick={() => setLeft(s)}>{s / 60} мин</button>)}
-      {left > 0 && <button className="chip" onClick={() => setLeft(0)}>×</button>}
+    <div className="card accent">
+      <Strongman className="summary-art" label="ГОТОВО" />
+      <h2 style={{ textAlign: 'center' }}>Тренировка завершена</h2>
+      <div className="stats">
+        <div className="stat"><b>{mins(w.startedAt, w.finishedAt)}</b><span>минут</span></div>
+        <div className="stat"><b>{doneSets(w)}</b><span>подходов</span></div>
+        <div className="stat"><b>{(tonnage(w) / 1000).toFixed(1)}</b><span>тонн</span></div>
+      </div>
+      {prs.length > 0 && (
+        <div>
+          <h3>Новые рекорды</h3>
+          {prs.map(p => (
+            <div key={p.exerciseId} className="pr-row"><span>{exMap.get(p.exerciseId)?.name}</span><b>≈{p.e1rm} кг{p.prev ? ` (+${p.e1rm - p.prev})` : ''}</b></div>
+          ))}
+        </div>
+      )}
+      <p className="muted" style={{ textAlign: 'center' }}>{sloganOfDay()}</p>
+      <button className="btn primary wide" onClick={onClose}>Отлично</button>
     </div>
   )
 }
 
 export default function WorkoutScreen() {
-  const { current, startWorkout, updateCurrent, finishWorkout, cancelWorkout, workouts, deleteWorkout } = useStore()
+  const { current, startWorkout, updateCurrent, finishWorkout, cancelWorkout, workouts, deleteWorkout, lastSummaryId, clearSummary, profile } = useStore()
   const list = useExercises()
   const exMap = exerciseMap(list)
   const [picking, setPicking] = useState(false)
+  const [plates, setPlates] = useState<number>()
+  const startTimer = useTimer(s => s.start)
+  const [, tick] = useState(0)
+  useEffect(() => { const t = setInterval(() => tick(x => x + 1), 30000); return () => clearInterval(t) }, [])
+
+  const summary = lastSummaryId ? workouts.find(w => w.id === lastSummaryId) : undefined
 
   if (!current) {
     return (
       <div className="screen">
+        <div className="eyebrow">Дневник</div>
         <h1>Тренировка</h1>
-        <div className="card">
-          <p className="muted">Начни тренировку из программы на главной или запиши свободную.</p>
-          <button className="btn primary" onClick={() => startWorkout({ title: 'Свободная тренировка', exercises: [] })}>Свободная тренировка</button>
-        </div>
+        {summary && <Summary w={summary} all={workouts} onClose={clearSummary} />}
+        {!summary && (
+          <div className="card">
+            <p className="muted">Начни тренировку из программы на главной или запиши свободную.</p>
+            <div className="row">
+              <Link className="btn primary" to="/">К программе</Link>
+              <button className="btn" onClick={() => startWorkout({ title: 'Свободная тренировка', exercises: [] })}>Свободная</button>
+            </div>
+          </div>
+        )}
         <h2>История</h2>
-        {!workouts.length && <p className="muted">Пока пусто.</p>}
+        {!workouts.length && <div className="empty">Здесь будут все твои тренировки.</div>}
         <div className="list">
           {workouts.map(w => (
             <details key={w.id} className="card">
-              <summary><b>{w.title}</b> <span className="muted">· {formatDate(w.startedAt)}</span></summary>
+              <summary><b>{w.title}</b> <span className="muted small">· {formatDate(w.startedAt)} · {doneSets(w)} подх. · {(tonnage(w) / 1000).toFixed(1)} т</span></summary>
               <ul className="plan">
                 {w.exercises.map((e, i) => (
                   <li key={i}><b>{exMap.get(e.exerciseId)?.name}</b>
@@ -52,6 +83,7 @@ export default function WorkoutScreen() {
             </details>
           ))}
         </div>
+        {!workouts.length && <Crest className="crest" />}
       </div>
     )
   }
@@ -61,6 +93,11 @@ export default function WorkoutScreen() {
       ...w,
       exercises: w.exercises.map((e, i) => i !== ei ? e : { ...e, sets: e.sets.map((s, j) => j !== si ? s : { ...s, ...patch }) }),
     }))
+  const toggleDone = (ei: number, si: number, done: boolean) => {
+    unlockAudio()
+    setField(ei, si, { done })
+    if (done && (profile.autoRest ?? true)) startTimer(current.exercises[ei].restSec ?? 120)
+  }
   const addSet = (ei: number) => updateCurrent(w => ({
     ...w,
     exercises: w.exercises.map((e, i) => {
@@ -73,34 +110,53 @@ export default function WorkoutScreen() {
     ...w, exercises: w.exercises.map((e, i) => i !== ei ? e : { ...e, sets: e.sets.filter((_, j) => j !== si) }),
   }))
   const removeExercise = (ei: number) => updateCurrent(w => ({ ...w, exercises: w.exercises.filter((_, i) => i !== ei) }))
+  /** Перенести вес и повторы из прошлого раза */
+  const fillFromPrev = (ei: number, prev: LoggedSet[]) => updateCurrent(w => ({
+    ...w,
+    exercises: w.exercises.map((e, i) => i !== ei ? e : {
+      ...e, sets: e.sets.map((s, j) => (s.done || s.weight ? s : { ...s, weight: prev[Math.min(j, prev.length - 1)].weight, reps: s.reps || prev[Math.min(j, prev.length - 1)].reps })),
+    }),
+  }))
 
-  const doneSets = current.exercises.reduce((n, e) => n + e.sets.filter(s => s.done).length, 0)
-  const tonnage = current.exercises.reduce((n, e) => n + e.sets.filter(s => s.done).reduce((m, s) => m + s.weight * s.reps, 0), 0)
+  const total = current.exercises.reduce((n, e) => n + e.sets.length, 0)
+  const done = doneSets(current)
 
   return (
     <div className="screen">
+      <div className="eyebrow">Идёт тренировка · {mins(current.startedAt)} мин</div>
       <h1>{current.title}</h1>
-      <p className="muted">Выполнено подходов: {doneSets} · тоннаж {Math.round(tonnage)} кг</p>
+      <p className="muted">Подходов: {done} из {total} · тоннаж {Math.round(tonnage(current))} кг</p>
       <RestTimer />
       {current.exercises.map((e, ei) => {
         const ex = exMap.get(e.exerciseId)
         const best = Math.max(0, ...e.sets.filter(s => s.done && s.weight > 0).map(s => estimate1RM(s.weight, s.reps)))
+        const prev = lastPerformance(workouts, e.exerciseId, current.id)
         return (
           <div key={ei} className="card">
             <div className="head-row">
               <h3>{ex?.name ?? e.exerciseId}</h3>
-              <button className="btn ghost small" onClick={() => removeExercise(ei)}>✕</button>
+              <ConfirmButton className="btn ghost small" ask="Убрать?" onConfirm={() => removeExercise(ei)}>✕</ConfirmButton>
             </div>
+            {e.note && <p className="muted small">{e.note}</p>}
+            {prev && (
+              <div className="prev head-row">
+                <span>Прошлый раз ({formatDate(prev.date)}): {prev.sets.map(s => `${s.weight}×${s.reps}`).join(', ')}</span>
+                {e.sets.some(s => !s.weight && !s.done) && <button className="chip small" onClick={() => fillFromPrev(ei, prev.sets)}>Взять</button>}
+              </div>
+            )}
             <table className="sets">
-              <thead><tr><th>#</th><th>План</th><th>{ex?.timed ? 'Вес' : 'Кг'}</th><th>{ex?.timed ? 'Время' : 'Повт.'}</th><th>✓</th><th></th></tr></thead>
+              <thead><tr><th>#</th><th>План · блины</th><th>Кг</th><th>{ex?.timed ? 'Время' : 'Повт.'}</th><th>✓</th><th></th></tr></thead>
               <tbody>
                 {e.sets.map((s, si) => (
                   <tr key={si} className={s.done ? 'done' : ''}>
                     <td>{si + 1}</td>
-                    <td className="muted small">{e.planned?.[si] ? plannedLabel(e.planned[si]) : ''}</td>
+                    <td className="muted small plan-cell">
+                      {e.planned?.[si] ? shortPlan(e.planned[si]) : ''}
+                      {ex?.equipment === 'barbell' && s.weight > 0 && <button className="plate-btn" aria-label="Какие блины вешать" onClick={() => setPlates(s.weight)}>◉</button>}
+                    </td>
                     <td><input className="input num" type="number" inputMode="decimal" value={s.weight || ''} onChange={ev => setField(ei, si, { weight: Number(ev.target.value) })} /></td>
                     <td><input className="input num" type="number" inputMode="numeric" value={s.reps || ''} onChange={ev => setField(ei, si, { reps: Number(ev.target.value) })} /></td>
-                    <td><input type="checkbox" className="check" checked={s.done} onChange={ev => setField(ei, si, { done: ev.target.checked })} /></td>
+                    <td><input type="checkbox" className="check" checked={s.done} onChange={ev => toggleDone(ei, si, ev.target.checked)} /></td>
                     <td><button className="btn ghost small" onClick={() => removeSet(ei, si)}>−</button></td>
                   </tr>
                 ))}
@@ -116,13 +172,21 @@ export default function WorkoutScreen() {
       <button className="btn wide" onClick={() => setPicking(true)}>+ Добавить упражнение</button>
       <div className="row">
         <ConfirmButton ask="Не сохранять?" onConfirm={cancelWorkout}>Отменить</ConfirmButton>
-        <button className="btn primary" onClick={finishWorkout}>Завершить и сохранить</button>
+        <button className="btn primary" style={{ flex: 1 }} onClick={finishWorkout}>Завершить</button>
       </div>
       {picking && (
         <ExercisePicker list={list} onClose={() => setPicking(false)} onPick={x => {
           updateCurrent(w => ({ ...w, exercises: [...w.exercises, emptyLogged(x.id)] }))
           setPicking(false)
         }} />
+      )}
+      {plates !== undefined && (
+        <div className="sheet-backdrop" onClick={() => setPlates(undefined)}>
+          <div className="sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-head"><h2>{plates} кг</h2><button className="btn ghost" onClick={() => setPlates(undefined)}>Закрыть</button></div>
+            <PlateView total={plates} bar={profile.barWeight ?? 20} />
+          </div>
+        </div>
       )}
     </div>
   )

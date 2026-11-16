@@ -171,6 +171,9 @@ export interface LoggedExercise {
   sets: LoggedSet[]
   /** План из программы для подсказки */
   planned?: PlannedSet[]
+  /** Отдых между подходами по программе, сек */
+  restSec?: number
+  note?: string
 }
 
 export interface Workout {
@@ -191,4 +194,12 @@ export interface Profile {
   oneRepMax: Partial<Record<MainLift, number>>
   /** Шаг округления весов, кг */
   rounding: number
+  /** Вес грифа, кг (для калькулятора блинов) */
+  barWeight?: number
+  /** Звук и вибрация по окончании отдыха */
+  timerSound?: boolean
+  /** Автостарт таймера отдыха после отмеченного подхода */
+  autoRest?: boolean
 }
+
+export interface BodyweightEntry { date: string; kg: number }

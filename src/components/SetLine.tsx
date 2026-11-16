@@ -18,3 +18,12 @@ export function groupSets(sets: PlannedSet[]) {
   }
   return out.map(g => (g.n > 1 ? `${g.n} × ` : '') + plannedLabel(g.s))
 }
+
+/** Короткая подпись плана для таблицы подходов: «5×60», «3+×85», «8 @RPE 7», «5 · 65%» */
+export function shortPlan(s: PlannedSet) {
+  const r = `${s.reps}${s.amrap ? '+' : ''}`
+  if (s.weight) return `${r}×${s.weight}`
+  if (s.percent) return `${r} · ${Math.round(s.percent * 100)}%`
+  if (s.rpe) return `${r} @${s.rpe}`
+  return r
+}

@@ -11,8 +11,8 @@ export default function ProfileScreen() {
   const total = (['squat', 'bench', 'deadlift'] as MainLift[]).reduce((n, l) => n + (profile.oneRepMax[l] ?? 0), 0)
 
   const exportData = () => {
-    const { profile, customExercises, programs, activeProgramId, cursor, workouts } = useStore.getState()
-    const blob = new Blob([JSON.stringify({ profile, customExercises, programs, activeProgramId, cursor, workouts }, null, 2)], { type: 'application/json' })
+    const { profile, customExercises, programs, activeProgramId, cursor, workouts, bodyweight } = useStore.getState()
+    const blob = new Blob([JSON.stringify({ profile, customExercises, programs, activeProgramId, cursor, workouts, bodyweight }, null, 2)], { type: 'application/json' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = `zhelezo-backup-${new Date().toISOString().slice(0, 10)}.json`
@@ -34,6 +34,11 @@ export default function ProfileScreen() {
           <select className="input" value={profile.rounding} onChange={e => setProfile({ rounding: Number(e.target.value) })}>
             {[1, 1.25, 2.5, 5].map(v => <option key={v} value={v}>{v}</option>)}
           </select></div>
+      </div>
+      <div className="card">
+        <h2>Тренировка</h2>
+        <label className="toggle"><input id="auto-rest" type="checkbox" checked={profile.autoRest ?? true} onChange={e => setProfile({ autoRest: e.target.checked })} />Запускать таймер отдыха после отмеченного подхода</label>
+        <label className="toggle"><input id="timer-sound" type="checkbox" checked={profile.timerSound ?? true} onChange={e => setProfile({ timerSound: e.target.checked })} />Звук и вибрация в конце отдыха</label>
       </div>
       <div className="card">
         <h2>Разовые максимумы (1ПМ)</h2>

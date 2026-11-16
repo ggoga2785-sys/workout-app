@@ -11,6 +11,8 @@ export function workoutFromDay(p: Program, week: number, day: number): Omit<Work
     exercises: d.exercises.map(e => ({
       exerciseId: e.exerciseId,
       planned: e.sets,
+      restSec: e.restSec,
+      note: e.note,
       sets: e.sets.map(s => ({ weight: s.weight ?? 0, reps: s.reps, done: false })),
     })),
   }
