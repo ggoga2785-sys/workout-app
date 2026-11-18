@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import ConfirmButton from '../components/ConfirmButton'
 import { exerciseMap, emptyLogged, useExercises, useStore } from '../store'
 import ExercisePicker from '../components/ExercisePicker'
 import { shortPlan } from '../components/SetLine'
 import RestTimer from '../components/RestTimer'
+import ContinuePlan from '../components/ContinuePlan'
 import { PlateView } from '../components/Plates'
 import { estimate1RM, formatDate } from '../lib/util'
 import { doneSets, lastPerformance, newRecords, tonnage } from '../lib/stats'
@@ -62,15 +62,8 @@ export default function WorkoutScreen() {
         <div className="eyebrow">Дневник</div>
         <h1>Тренировка</h1>
         {summary && <Summary w={summary} all={workouts} onClose={clearSummary} harsh={profile.harsh ?? true} />}
-        {!summary && (
-          <div className="card">
-            <p className="muted">Начни тренировку из программы на главной или запиши свободную.</p>
-            <div className="row">
-              <Link className="btn primary" to="/">К программе</Link>
-              <button className="btn" onClick={() => startWorkout({ title: 'Свободная тренировка', exercises: [] })}>Свободная</button>
-            </div>
-          </div>
-        )}
+        <ContinuePlan />
+        <button className="btn ghost wide" onClick={() => startWorkout({ title: 'Свободная тренировка', exercises: [] })}>Свободная тренировка (без плана)</button>
         <h2>История</h2>
         {!workouts.length && <div className="empty">Здесь будут все твои тренировки.</div>}
         <div className="list">
