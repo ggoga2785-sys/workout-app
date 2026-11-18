@@ -8,7 +8,7 @@
 import type {
   MainLift, PlannedExercise, PlannedSet, Program, ProgramDay, ProgramSettings, ProgramWeek
 } from '../types'
-import { DISCIPLINE_LABELS, BB_GOAL_LABELS, PL_FOCUS_LABELS, PL_METHOD_LABELS, PL_PHASE_LABELS } from '../data/labels'
+import { FITNESS_GOAL_LABELS, DISCIPLINE_LABELS, BB_GOAL_LABELS, PL_FOCUS_LABELS, PL_METHOD_LABELS, PL_PHASE_LABELS } from '../data/labels'
 import { roundTo, uid, weeksUntil } from './util'
 
 type OneRM = Partial<Record<MainLift, number>>
@@ -69,8 +69,84 @@ const FITNESS_DAYS: { title: string; slots: Slot[] }[] = [
   { title: 'Общая В', slots: [['lunges', true], ['db-press', true], ['db-row', true], ['hyperext', false], ['pallof', false], ['rower', false]] },
 ]
 
+// ================= Фитнес для девушек: всё тело 3 раза в неделю =================
+// Только простые упражнения, которые есть в любом зале и не требуют постановки техники.
+// Кардио — велотренажёр по 30 минут 2 раза в неделю (дни А и В), пресс и кор — в каждой тренировке.
+
+const TIPS: Record<string, string> = {
+  'plate-squat': 'Блин прижат к груди, стопы на ширине плеч, садись до параллели, спина прямая, колени смотрят туда же, куда носки',
+  'db-rdl': 'Колени чуть согнуты, гантели скользят вдоль ног, таз уводи назад до натяжения сзади бедра, спина прямая',
+  'leg-press': 'Стопы повыше и пошире — больше работают ягодицы. Поясница прижата, колени до конца не выпрямляй',
+  'hip-thrust': 'Лопатки на скамье, подбородок к груди, вверху сожми ягодицы на 1 секунду. Можно в Смите или в тренажёре',
+  'lunges': 'Шагай назад — так легче держать равновесие. Колено почти касается пола, корпус ровно',
+  'hyperext': 'Слегка округли спину и подкрути таз — так работают ягодицы, а не поясница',
+  'lat-pulldown': 'Тяни к верху груди, локти вниз, без раскачки корпусом',
+  'seated-row': 'Грудь вперёд, тяни к поясу и своди лопатки',
+  'db-row': 'Колено и рука на скамье, тяни гантель к поясу, спина ровная',
+  'db-bench': 'Лопатки сведены, гантели опускай к груди медленно',
+  'machine-chest': 'Ручки на уровне груди, плечи не поднимай',
+  'db-press': 'Сидя со спинкой, жми вверх без прогиба в пояснице',
+  'lateral-raise': 'Лёгкие гантели, локти чуть согнуты, поднимай до уровня плеч',
+  'leg-curl-lying': 'Таз прижат, вверх быстро, вниз медленно',
+  'hip-abduction': 'Медленно, в крайней точке пауза 1 секунда',
+  'glute-kickback': 'Корпус неподвижен, отводи ногу назад за счёт ягодицы, без рывков',
+  'plank': 'секунды. Тело прямое, пресс и ягодицы напряжены, не прогибайся',
+  'side-plank': 'секунды на каждую сторону. Таз не опускай, тело в одну линию',
+  'crunch': 'Поясница прижата, поднимай только лопатки, выдох наверху',
+  'lying-leg-raise': 'Поясница прижата к полу, ноги опускай медленно',
+  'bike': 'минуты. Ровный темп: дышишь часто, но можешь говорить. Можно заменить быстрой ходьбой на улице',
+}
+
+type FSlot = [string, 'big' | 'small' | 'core' | 'bike']
+const WOMEN_DAYS: Record<'fatloss' | 'glutes' | 'tone', { title: string; slots: FSlot[] }[]> = {
+  fatloss: [
+    { title: 'Всё тело А + кардио', slots: [['plate-squat', 'big'], ['db-rdl', 'big'], ['lat-pulldown', 'big'], ['db-bench', 'small'], ['plank', 'core'], ['crunch', 'core'], ['bike', 'bike']] },
+    { title: 'Всё тело Б', slots: [['leg-press', 'big'], ['hip-thrust', 'big'], ['db-row', 'big'], ['db-press', 'small'], ['leg-curl-lying', 'small'], ['lying-leg-raise', 'core'], ['side-plank', 'core']] },
+    { title: 'Всё тело В + кардио', slots: [['lunges', 'big'], ['hyperext', 'big'], ['seated-row', 'big'], ['machine-chest', 'small'], ['crunch', 'core'], ['plank', 'core'], ['bike', 'bike']] },
+  ],
+  glutes: [
+    { title: 'Ягодицы и ноги А + кардио', slots: [['plate-squat', 'big'], ['db-rdl', 'big'], ['hip-abduction', 'small'], ['lat-pulldown', 'big'], ['db-press', 'small'], ['plank', 'core'], ['bike', 'bike']] },
+    { title: 'Ягодицы Б', slots: [['hip-thrust', 'big'], ['leg-press', 'big'], ['leg-curl-lying', 'small'], ['glute-kickback', 'small'], ['db-row', 'big'], ['lying-leg-raise', 'core'], ['side-plank', 'core']] },
+    { title: 'Ягодицы и ноги В + кардио', slots: [['lunges', 'big'], ['hyperext', 'big'], ['hip-abduction', 'small'], ['seated-row', 'big'], ['db-bench', 'small'], ['crunch', 'core'], ['bike', 'bike']] },
+  ],
+  tone: [
+    { title: 'Всё тело А + кардио', slots: [['plate-squat', 'big'], ['lat-pulldown', 'big'], ['db-rdl', 'big'], ['lateral-raise', 'small'], ['plank', 'core'], ['crunch', 'core'], ['bike', 'bike']] },
+    { title: 'Всё тело Б', slots: [['hip-thrust', 'big'], ['db-row', 'big'], ['db-press', 'small'], ['leg-curl-lying', 'small'], ['lateral-raise', 'small'], ['lying-leg-raise', 'core'], ['side-plank', 'core']] },
+    { title: 'Всё тело В + кардио', slots: [['leg-press', 'big'], ['seated-row', 'big'], ['hyperext', 'big'], ['machine-chest', 'small'], ['crunch', 'core'], ['plank', 'core'], ['bike', 'bike']] },
+  ],
+}
+
+/** Прогрессия: недели 1–4 освоение (первые 2 — по 2 подхода), 5–8 прогресс, 9+ рельеф и форма */
+function buildWomenWeek(goal: 'fatloss' | 'glutes' | 'tone', weekIdx: number): ProgramWeek {
+  const stage = weekIdx < 4 ? 0 : weekIdx < 8 ? 1 : 2
+  const block = ['Освоение техники', 'Прогресс в весах', 'Рельеф и форма'][stage]
+  const reps = goal === 'fatloss' ? [15, 12, 12] : goal === 'glutes' ? [12, 10, 10] : [12, 12, 10]
+  const rpe = [7, 8, 8][stage]
+  const bigSets = weekIdx < 2 ? 2 : stage === 2 ? 4 : 3
+  const smallSets = weekIdx < 2 ? 2 : 3
+  const rest = goal === 'fatloss' ? 60 : 90
+  const days: ProgramDay[] = WOMEN_DAYS[goal].map(d => ({
+    title: d.title,
+    exercises: d.slots.map(([id, kind]) => {
+      const tip = TIPS[id]
+      if (kind === 'bike') return ex(id, [{ reps: 30 }], 0, tip)
+      if (kind === 'core') {
+        const timed = id === 'plank' || id === 'side-plank'
+        const n = weekIdx < 2 ? 2 : 3
+        return ex(id, sets(n, { reps: timed ? [30, 40, 50][stage] : [15, 15, 20][stage] }), 45, tip)
+      }
+      // На ягодицы — главный подход тяжелее и больше подходов
+      const glute = goal === 'glutes' && (id === 'hip-thrust' || id === 'plate-squat' || id === 'lunges')
+      return ex(id, sets(kind === 'big' ? bigSets + (glute && weekIdx >= 2 ? 1 : 0) : smallSets, { reps: kind === 'big' ? reps[stage] : reps[stage] + 3, rpe }), kind === 'big' ? rest : 60, tip)
+    }),
+  }))
+  return { index: weekIdx, block, days }
+}
+
 function buildHypertrophyWeek(s: ProgramSettings, weekIdx: number, totalWeeks: number): ProgramWeek {
   const isFitness = s.discipline === 'fitness'
+  const fg = s.fitnessGoal
+  if (isFitness && fg && fg !== 'health') return buildWomenWeek(fg, weekIdx)
   const scheme = BB_SCHEMES[isFitness ? 'fitness' : s.bodybuildingGoal ?? 'mass']
   const deload = !isFitness && (weekIdx + 1) % 4 === 0 && weekIdx + 1 < totalWeeks
   // Волна RPE внутри 4-недельного блока: 7 → 8 → 9 → разгрузка
@@ -197,7 +273,7 @@ export function programWeeks(s: ProgramSettings): number {
 
 export function programName(s: ProgramSettings): string {
   if (s.discipline === 'bodybuilding') return `${DISCIPLINE_LABELS.bodybuilding}: ${BB_GOAL_LABELS[s.bodybuildingGoal ?? 'mass']}`
-  if (s.discipline === 'fitness') return 'Фитнес: здоровье и тонус'
+  if (s.discipline === 'fitness') return `Фитнес: ${FITNESS_GOAL_LABELS[s.fitnessGoal ?? 'health'].replace('Девушкам: ', 'для девушек, ')}`
   return `${PL_FOCUS_LABELS[s.plFocus ?? 'total']} · ${PL_PHASE_LABELS[s.plPhase ?? 'offseason']} · ${PL_METHOD_LABELS[s.plMethod ?? 'generic']}`
 }
 
@@ -214,7 +290,9 @@ export function generateProgram(s: ProgramSettings, orm: OneRM, rounding = 2.5):
         ? `Подводка к старту за ${total} нед.: накопление → интенсификация → пик → подводка. Веса считаются от введённого 1ПМ.`
         : 'Межсезонье: 4-недельные волны с разгрузкой, поддержание и рост силы.')
     : s.discipline === 'fitness'
-      ? 'Тренировки на всё тело, умеренная интенсивность, кардио в конце.'
+      ? (s.fitnessGoal && s.fitnessGoal !== 'health'
+          ? 'Всё тело 3 раза в неделю на простых упражнениях из обычного зала. Вес подбирай так, чтобы последние 2–3 повтора давались тяжело, но техника не ломалась; получается легко — добавь вес. Пресс и кор в каждой тренировке, велотренажёр по 30 минут 2 раза в неделю. Для похудения главное — небольшой дефицит калорий и 8–10 тысяч шагов в день.'
+          : 'Тренировки на всё тело, умеренная интенсивность, кардио в конце.')
       : 'Сплит под цель, волна усилий по RPE в 4-недельных блоках, разгрузка каждую 4-ю неделю.'
   return {
     id: uid(),

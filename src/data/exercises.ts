@@ -31,6 +31,8 @@ const rows: Row[] = [
   ['deadlift-pause', 'Становая тяга с паузой у колен', 'back', 'barbell', C, ['hamstrings'], { lift: 'deadlift' }],
   ['deadlift-blocks', 'Тяга с плинтов', 'back', 'barbell', C, ['glutes'], { lift: 'deadlift' }],
   ['rdl', 'Румынская тяга', 'hamstrings', 'barbell', C, ['glutes', 'back'], { lift: 'deadlift' }],
+  ['db-rdl', 'Румынская тяга с гантелями', 'hamstrings', 'dumbbell', C, ['glutes', 'back']],
+  ['plate-squat', 'Приседания с блином у груди', 'quads', 'barbell', C, ['glutes']],
   ['sldl', 'Тяга на прямых ногах', 'hamstrings', 'barbell', C, ['back', 'glutes'], { lift: 'deadlift' }],
   ['good-morning', 'Наклоны со штангой (гуд морнинг)', 'hamstrings', 'barbell', C, ['back', 'glutes']],
 
@@ -127,6 +129,8 @@ const rows: Row[] = [
   // ===== Пресс и кор =====
   ['plank', 'Планка', 'abs', 'bodyweight', I, [], { timed: true }],
   ['crunch', 'Скручивания', 'abs', 'bodyweight', I],
+  ['lying-leg-raise', 'Подъём ног лёжа', 'abs', 'bodyweight', I],
+  ['side-plank', 'Боковая планка', 'abs', 'bodyweight', I, [], { timed: true }],
   ['hanging-leg-raise', 'Подъём ног в висе', 'abs', 'bodyweight', I],
   ['cable-crunch', 'Скручивания в блоке на коленях', 'abs', 'cable', I],
   ['ab-wheel', 'Ролик для пресса', 'abs', 'bodyweight', I],

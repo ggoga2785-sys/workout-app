@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import type { BodybuildingGoal, Discipline, Level, MainLift, PowerliftingPhase, ProgramSettings } from '../types'
-import { BB_GOAL_LABELS, DISCIPLINE_LABELS, LEVEL_LABELS, LIFT_LABELS, PL_PHASE_LABELS } from '../data/labels'
+import type { BodybuildingGoal, Discipline, FitnessGoal, Level, MainLift, PowerliftingPhase, ProgramSettings } from '../types'
+import { FITNESS_GOAL_LABELS, BB_GOAL_LABELS, DISCIPLINE_LABELS, LEVEL_LABELS, LIFT_LABELS, PL_PHASE_LABELS } from '../data/labels'
 import { generateProgram, programWeeks } from '../lib/generator'
 import { requiredLifts, useCatalog } from '../lib/catalog'
 import { buildPlan, planOptions, type PlanOption } from '../lib/planner'
@@ -129,6 +129,14 @@ export default function NewProgram() {
           ))}
         </div>
       </section>
+
+      {s.discipline === 'fitness' && (
+        <section className="field">
+          <label>Цель</label>
+          <Choice<FitnessGoal> value={s.fitnessGoal ?? 'health'} options={entries(FITNESS_GOAL_LABELS) as [FitnessGoal, string][]} onChange={v => up({ fitnessGoal: v, ...(v !== 'health' ? { daysPerWeek: 3, weeks: 12 } : {}) })} />
+          {s.fitnessGoal && s.fitnessGoal !== 'health' && <p className="muted">Всё тело 3 раза в неделю, только простые упражнения без сложной техники. Пресс в каждой тренировке, велотренажёр по 30 минут 2 раза в неделю. У каждого упражнения есть подсказка по технике и ссылка на видео.</p>}
+        </section>
+      )}
 
       {s.discipline === 'bodybuilding' && (
         <section className="field">

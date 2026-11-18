@@ -149,7 +149,7 @@ export default function WorkoutScreen() {
               <h3>{ex?.name ?? e.exerciseId}</h3>
               <ConfirmButton className="btn ghost small" ask="Убрать?" onConfirm={() => removeExercise(ei)}>✕</ConfirmButton>
             </div>
-            {e.note && <p className="muted small">{e.note}</p>}
+            {(e.note || ex) && <p className="muted small">{e.note}{e.note ? ' · ' : ''}<a className="link" href={`https://www.youtube.com/results?search_query=${encodeURIComponent((ex?.name ?? e.exerciseId) + ' техника')}`} target="_blank" rel="noreferrer">▶ видео техники</a></p>}
             {prev && (
               <div className="prev head-row">
                 <span>Прошлый раз ({formatDate(prev.date)}): {prev.sets.map(s => `${s.weight}×${s.reps}`).join(', ')}</span>

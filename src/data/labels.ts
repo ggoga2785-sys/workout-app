@@ -16,6 +16,10 @@ export const DISCIPLINE_LABELS: Record<Discipline, string> = {
   bodybuilding: 'Бодибилдинг', fitness: 'Фитнес', powerlifting: 'Пауэрлифтинг'
 }
 
+export const FITNESS_GOAL_LABELS = {
+  health: 'Здоровье и тонус', fatloss: 'Девушкам: похудение', glutes: 'Девушкам: ягодицы и ноги', tone: 'Девушкам: стройность и талия',
+} as const
+
 export const BB_GOAL_LABELS: Record<BodybuildingGoal, string> = {
   mass: 'Набор массы', recomp: 'Рекомпозиция', cut: 'Сушка'
 }

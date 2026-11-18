@@ -28,6 +28,7 @@ export interface Exercise {
 }
 
 // ===== Цели и настройки программы =====
+export type FitnessGoal = 'health' | 'fatloss' | 'glutes' | 'tone'
 export type Discipline = 'bodybuilding' | 'fitness' | 'powerlifting'
 export type BodybuildingGoal = 'mass' | 'recomp' | 'cut'
 export type PowerliftingFocus = 'total' | MainLift
@@ -61,6 +62,8 @@ export interface ProgramSettings {
   weeks: number
   /** Схема сплита для 3 дней в бодибилдинге */
   split?: 'fullbody' | 'upperlower'
+  /** Цель фитнес-программы; women* — программы для девушек */
+  fitnessGoal?: FitnessGoal
 }
 
 // ===== Сгенерированная программа =====
